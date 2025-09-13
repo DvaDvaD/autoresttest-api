@@ -1,0 +1,1 @@
+This is a placeholder for the AutoRestTest model. Replace this file with the actual serialized model.
