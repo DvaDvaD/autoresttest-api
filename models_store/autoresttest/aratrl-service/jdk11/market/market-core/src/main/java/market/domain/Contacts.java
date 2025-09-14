@@ -16,14 +16,9 @@ public class Contacts implements Serializable {
 	private static final long serialVersionUID = 582080671801480110L;
 
 	@Id
-	@Column(name = "id", unique = true, nullable = false)
-	@GeneratedValue(generator = "gen")
-	@GenericGenerator(name = "gen", strategy = "foreign", parameters = @Parameter(name = "property", value = "userAccount"))
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	@Column(name = "id")
 	private Long id;
-
-	@OneToOne
-	@PrimaryKeyJoinColumn
-	private UserAccount userAccount; // todo: change to 'String userLogin'
 
 	@Column(name = "phone", nullable = false)
 	private String phone;

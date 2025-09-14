@@ -28,10 +28,12 @@ public class UserAccount implements Serializable {
 	@Column(name = "active", nullable = false)
 	private boolean active;
 
-	@OneToOne(mappedBy = "userAccount", cascade = CascadeType.ALL)
+	@OneToOne(cascade = CascadeType.ALL)
+	@JoinColumn(name = "contacts_id", referencedColumnName = "id")
 	private Contacts contacts;
 
-	@OneToOne(mappedBy = "userAccount", cascade = CascadeType.ALL)
+	@OneToOne(cascade = CascadeType.ALL)
+	@JoinColumn(name = "cart_id", referencedColumnName = "id")
 	private Cart cart;
 
 	@ManyToMany(fetch = FetchType.EAGER, cascade = {CascadeType.ALL})

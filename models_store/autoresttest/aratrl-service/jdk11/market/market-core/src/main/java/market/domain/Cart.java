@@ -19,14 +19,9 @@ public class Cart implements Serializable {
 	private static final long serialVersionUID = -6884843696895527904L;
 
 	@Id
-	@Column(name = "id", unique = true, nullable = false)
-	@GeneratedValue(generator = "gen")
-	@GenericGenerator(name = "gen", strategy = "foreign", parameters = @Parameter(name = "property", value = "userAccount"))
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	@Column(name = "id")
 	private long id;
-
-	@OneToOne
-	@PrimaryKeyJoinColumn
-	private UserAccount userAccount;
 
 	@OneToMany(fetch = FetchType.EAGER, cascade = CascadeType.ALL, orphanRemoval = true,
 		targetEntity = CartItem.class, mappedBy = "cart")
