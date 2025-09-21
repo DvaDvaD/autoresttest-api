@@ -61,6 +61,10 @@ class AutoRestTestModel:
 
             stdout, stderr = await process.communicate()
             print("Script execution finished.")
+            print("--- Subprocess stdout ---")
+            print(stdout.decode())
+            print("--- Subprocess stderr ---")
+            print(stderr.decode())
 
             if process.returncode != 0:
                 print(f"Error running script: {stderr.decode()}")
@@ -75,4 +79,5 @@ class AutoRestTestModel:
                 summary={"message": "Test completed successfully"}, raw_file_urls={}
             )
         finally:
-            shutil.rmtree(temp_dir)
+            print(f"Temporary directory not deleted for inspection: {temp_dir}")
+            # shutil.rmtree(temp_dir)
