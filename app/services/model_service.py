@@ -10,7 +10,7 @@ from app.core.config import settings
 
 class AutoRestTestModel:
     def __init__(self, model_path: str):
-        pass
+        self._lock = asyncio.Lock()
 
     async def run_test(self, config: TestConfiguration) -> TestRunResult:
         print("model_service.run_test invoked.")
@@ -38,8 +38,15 @@ class AutoRestTestModel:
                 f.write("ENABLE_HEADER_AGENT = False\n")
             print("configurations.py created.")
 
-            src_dir = "models_store/autoresttest/src"
-            shutil.copytree(src_dir, os.path.join(temp_dir, "src"))
+            master_cache_dir = "models_store/autoresttest/src/cache"
+            temp_src_dir = os.path.join(temp_dir, "src")
+            temp_cache_dir = os.path.join(temp_src_dir, "cache")
+
+            shutil.copytree("models_store/autoresttest/src", temp_src_dir, ignore=shutil.ignore_patterns('cache'))
+
+            async with self._lock:
+                if os.path.exists(master_cache_dir):
+                    shutil.copytree(master_cache_dir, temp_cache_dir)
 
             script_to_run = "AutoRestTest.py"
             original_script_path = f"models_store/autoresttest/{script_to_run}"
@@ -81,6 +88,8 @@ class AutoRestTestModel:
             stderr_task = asyncio.create_task(stream_output(process.stderr, "stderr"))
 
             await asyncio.gather(stdout_task, stderr_task)
+
+            await process.wait()
             print("Script execution finished.")
 
             if process.returncode != 0:
@@ -89,6 +98,11 @@ class AutoRestTestModel:
                 return TestRunResult(
                     summary={"message": "Test execution failed"}, raw_file_urls={}
                 )
+
+            async with self._lock:
+                if os.path.exists(master_cache_dir):
+                    shutil.rmtree(master_cache_dir)
+                shutil.copytree(temp_cache_dir, master_cache_dir)
 
             # For now, return a placeholder. We'll implement the real result later.
             print("Returning result.")
