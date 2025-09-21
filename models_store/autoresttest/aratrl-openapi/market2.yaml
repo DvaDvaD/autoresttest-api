@@ -489,14 +489,10 @@ components:
         address:
           maxLength: 100
           minLength: 0
-          pattern: "^[^#$%^*()']*$"
           type: string
         phone:
           maxLength: 20
           minLength: 0
-          pattern:
-            "^\\+[1-9][0-9]?[\\s]*\\(?\\d{3}\\)?[-\\s]?\\d{3}[-\\s]?\\d{2}[-\\\
-            s]?\\d{2}$"
           type: string
     ContactsDTORes:
       title: ContactsDTORes
@@ -507,21 +503,16 @@ components:
         address:
           maxLength: 100
           minLength: 0
-          pattern: "^[^#$%^*()']*$"
           type: string
         phone:
           maxLength: 20
           minLength: 0
-          pattern:
-            "^\\+[1-9][0-9]?[\\s]*\\(?\\d{3}\\)?[-\\s]?\\d{3}[-\\s]?\\d{2}[-\\\
-            s]?\\d{2}$"
           type: string
     CreditCardDTO:
       title: CreditCardDTO
       type: object
       properties:
         ccNumber:
-          pattern: "\\b(?:\\d[ -]*?){13,16}\\b"
           type: string
     Link:
       title: Link
@@ -615,7 +606,6 @@ components:
         distillery:
           type: string
         name:
-          pattern: "^[^#$%^&*()']*$"
           type: string
         price:
           type: number
@@ -637,29 +627,22 @@ components:
         address:
           maxLength: 100
           minLength: 0
-          pattern: "^[^#$%^*()']*$"
           type: string
         email:
           maxLength: 50
           minLength: 0
-          pattern: "^[\\w-]+(\\.[\\w-]+)*@([\\w-]+\\.)+[a-zA-Z]+$"
           type: string
         name:
           maxLength: 50
           minLength: 0
-          pattern: "^[\\pL '-]+$"
           type: string
         password:
           maxLength: 50
           minLength: 6
-          pattern: "^[a-zA-Z0-9]+$"
           type: string
         phone:
           maxLength: 20
           minLength: 0
-          pattern:
-            "^\\+[1-9][0-9]?[\\s]*\\(?\\d{3}\\)?[-\\s]?\\d{3}[-\\s]?\\d{2}[-\\\
-            s]?\\d{2}$"
           type: string
     UserDTORes:
       title: UserDTORes
@@ -670,28 +653,21 @@ components:
         address:
           maxLength: 100
           minLength: 0
-          pattern: "^[^#$%^*()']*$"
           type: string
         email:
           maxLength: 50
           minLength: 0
-          pattern: "^[\\w-]+(\\.[\\w-]+)*@([\\w-]+\\.)+[a-zA-Z]+$"
           type: string
         name:
           maxLength: 50
           minLength: 0
-          pattern: "^[\\pL '-]+$"
           type: string
         password:
           maxLength: 50
           minLength: 6
-          pattern: "^[a-zA-Z0-9]+$"
           type: string
         phone:
           maxLength: 20
           minLength: 0
-          pattern:
-            "^\\+[1-9][0-9]?[\\s]*\\(?\\d{3}\\)?[-\\s]?\\d{3}[-\\s]?\\d{2}[-\\\
-            s]?\\d{2}$"
           type: string
 x-original-swagger-version: "2.0"

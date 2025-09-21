@@ -2,6 +2,8 @@ import asyncio
 import os
 import shutil
 import tempfile
+import json
+import yaml
 from app.models.test_config import TestConfiguration, TestRunResult
 from app.core.config import settings
 
@@ -15,9 +17,10 @@ class AutoRestTestModel:
         temp_dir = tempfile.mkdtemp()
         print(f"Temporary directory created: {temp_dir}")
         try:
+            spec_data = json.loads(config.spec_file_content)
             spec_path = os.path.join(temp_dir, "spec.yaml")
             with open(spec_path, "w") as f:
-                f.write(config.spec_file_content)
+                yaml.dump(spec_data, f)
 
             config_path = os.path.join(temp_dir, "configurations.py")
             print("Creating configurations.py...")
@@ -63,7 +66,7 @@ class AutoRestTestModel:
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
                 cwd=temp_dir,
-                env={"OPENAI_API_KEY": settings.API_KEY},
+                env={"OPENAI_API_KEY": settings.OPENAI_API_KEY},
             )
 
             async def stream_output(stream, prefix):
