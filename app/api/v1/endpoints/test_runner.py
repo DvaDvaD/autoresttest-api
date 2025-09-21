@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends
-from app.models.test_config import TestConfiguration, TestResult
+from app.models.test_config import TestConfiguration, TestRunResult
 from app.services.model_service import AutoRestTestModel
 from app.api.deps import get_api_key
 from app.core.config import settings
@@ -11,12 +11,14 @@ router = APIRouter()
 # or a global variable initialized on startup.
 model_service = AutoRestTestModel(settings.MODEL_PATH)
 
-@router.post("/run", response_model=TestResult)
-def run_test(
-    config: TestConfiguration,
-    api_key: str = Depends(get_api_key)
-):
+
+@router.post("/run", response_model=TestRunResult)
+async def run_test(config: TestConfiguration, _: str = Depends(get_api_key)):
     """
     Run a test using the AutoRestTest model.
     """
-    return model_service.run_test(config)
+    print("Endpoint /run invoked.")
+    print("Calling model_service.run_test...")
+    result = await model_service.run_test(config)
+    print("Result received from model_service.")
+    return result

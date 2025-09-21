@@ -9,38 +9,38 @@ info:
     url: http://www.apache.org/licenses/LICENSE-2.0
   version: "1.0"
 servers:
-   - url: http://localhost:30117
-   #- url: http://localhost:50117
+  - url: http://localhost:8081
+  #- url: http://localhost:50117
 tags:
-- name: cart-rest-controller
-  description: Cart Rest Controller
-- name: contacts-rest-controller
-  description: Contacts Rest Controller
-- name: customer-rest-controller
-  description: Customer Rest Controller
-- name: orders-rest-controller
-  description: Orders Rest Controller
-- name: products-rest-controller
-  description: Products Rest Controller
+  - name: cart-rest-controller
+    description: Cart Rest Controller
+  - name: contacts-rest-controller
+    description: Contacts Rest Controller
+  - name: customer-rest-controller
+    description: Customer Rest Controller
+  - name: orders-rest-controller
+    description: Orders Rest Controller
+  - name: products-rest-controller
+    description: Products Rest Controller
 paths:
   /customer:
     get:
       tags:
-      - customer-rest-controller
+        - customer-rest-controller
       summary: getCustomer
       operationId: getCustomerUsingGET
       parameters:
-      - name: name
-        in: query
-        schema:
-          type: string
+        - name: name
+          in: query
+          schema:
+            type: string
       responses:
         "200":
           description: OK
           content:
-            '*/*':
+            "*/*":
               schema:
-                $ref: '#/components/schemas/UserDTORes'
+                $ref: "#/components/schemas/UserDTORes"
         "401":
           description: Unauthorized
           content: {}
@@ -53,21 +53,21 @@ paths:
   /customer/cart:
     get:
       tags:
-      - cart-rest-controller
+        - cart-rest-controller
       summary: getCart
       operationId: getCartUsingGET
       parameters:
-      - name: name
-        in: query
-        schema:
-          type: string
+        - name: name
+          in: query
+          schema:
+            type: string
       responses:
         "200":
           description: OK
           content:
-            '*/*':
+            "*/*":
               schema:
-                $ref: '#/components/schemas/CartDTO'
+                $ref: "#/components/schemas/CartDTO"
         "401":
           description: Unauthorized
           content: {}
@@ -79,28 +79,28 @@ paths:
           content: {}
     put:
       tags:
-      - cart-rest-controller
+        - cart-rest-controller
       summary: addItem
       operationId: addItemUsingPUT
       parameters:
-      - name: name
-        in: query
-        schema:
-          type: string
+        - name: name
+          in: query
+          schema:
+            type: string
       requestBody:
         description: item
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CartItemDTOReq'
+              $ref: "#/components/schemas/CartItemDTOReq"
         required: true
       responses:
         "200":
           description: OK
           content:
-            '*/*':
+            "*/*":
               schema:
-                $ref: '#/components/schemas/CartDTO'
+                $ref: "#/components/schemas/CartDTO"
         "201":
           description: Created
           content: {}
@@ -116,21 +116,21 @@ paths:
       x-codegen-request-body-name: item
     delete:
       tags:
-      - cart-rest-controller
+        - cart-rest-controller
       summary: clearCart
       operationId: clearCartUsingDELETE
       parameters:
-      - name: name
-        in: query
-        schema:
-          type: string
+        - name: name
+          in: query
+          schema:
+            type: string
       responses:
         "200":
           description: OK
           content:
-            '*/*':
+            "*/*":
               schema:
-                $ref: '#/components/schemas/CartDTO'
+                $ref: "#/components/schemas/CartDTO"
         "204":
           description: No Content
           content: {}
@@ -143,27 +143,27 @@ paths:
   /customer/cart/delivery:
     put:
       tags:
-      - cart-rest-controller
+        - cart-rest-controller
       summary: setDelivery
       operationId: setDeliveryUsingPUT
       parameters:
-      - name: included
-        in: query
-        description: included
-        required: true
-        schema:
-          type: boolean
-      - name: name
-        in: query
-        schema:
-          type: string
+        - name: included
+          in: query
+          description: included
+          required: true
+          schema:
+            type: boolean
+        - name: name
+          in: query
+          schema:
+            type: string
       responses:
         "200":
           description: OK
           content:
-            '*/*':
+            "*/*":
               schema:
-                $ref: '#/components/schemas/CartDTO'
+                $ref: "#/components/schemas/CartDTO"
         "201":
           description: Created
           content: {}
@@ -179,28 +179,28 @@ paths:
   /customer/cart/pay:
     post:
       tags:
-      - cart-rest-controller
+        - cart-rest-controller
       summary: payByCard
       operationId: payByCardUsingPOST
       parameters:
-      - name: name
-        in: query
-        schema:
-          type: string
+        - name: name
+          in: query
+          schema:
+            type: string
       requestBody:
         description: card
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CreditCardDTO'
+              $ref: "#/components/schemas/CreditCardDTO"
         required: true
       responses:
         "201":
           description: Created
           content:
-            '*/*':
+            "*/*":
               schema:
-                $ref: '#/components/schemas/OrderDTO'
+                $ref: "#/components/schemas/OrderDTO"
         "401":
           description: Unauthorized
           content: {}
@@ -214,21 +214,21 @@ paths:
   /customer/contacts:
     get:
       tags:
-      - contacts-rest-controller
+        - contacts-rest-controller
       summary: getContacts
       operationId: getContactsUsingGET
       parameters:
-      - name: name
-        in: query
-        schema:
-          type: string
+        - name: name
+          in: query
+          schema:
+            type: string
       responses:
         "200":
           description: OK
           content:
-            '*/*':
+            "*/*":
               schema:
-                $ref: '#/components/schemas/ContactsDTORes'
+                $ref: "#/components/schemas/ContactsDTORes"
         "401":
           description: Unauthorized
           content: {}
@@ -240,28 +240,28 @@ paths:
           content: {}
     put:
       tags:
-      - contacts-rest-controller
+        - contacts-rest-controller
       summary: updateContacts
       operationId: updateContactsUsingPUT
       parameters:
-      - name: name
-        in: query
-        schema:
-          type: string
+        - name: name
+          in: query
+          schema:
+            type: string
       requestBody:
         description: contactsDto
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ContactsDTOReq'
+              $ref: "#/components/schemas/ContactsDTOReq"
         required: true
       responses:
         "200":
           description: OK
           content:
-            '*/*':
+            "*/*":
               schema:
-                $ref: '#/components/schemas/ContactsDTORes'
+                $ref: "#/components/schemas/ContactsDTORes"
         "201":
           description: Created
           content: {}
@@ -278,23 +278,23 @@ paths:
   /customer/orders:
     get:
       tags:
-      - orders-rest-controller
+        - orders-rest-controller
       summary: getOrders
       operationId: getOrdersUsingGET
       parameters:
-      - name: name
-        in: query
-        schema:
-          type: string
+        - name: name
+          in: query
+          schema:
+            type: string
       responses:
         "200":
           description: OK
           content:
-            '*/*':
+            "*/*":
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/OrderDTO'
+                  $ref: "#/components/schemas/OrderDTO"
         "401":
           description: Unauthorized
           content: {}
@@ -307,28 +307,28 @@ paths:
   /customer/orders/{orderId}:
     get:
       tags:
-      - orders-rest-controller
+        - orders-rest-controller
       summary: getOrder
       operationId: getOrderUsingGET
       parameters:
-      - name: name
-        in: query
-        schema:
-          type: string
-      - name: orderId
-        in: path
-        description: orderId
-        required: true
-        schema:
-          type: integer
-          format: int64
+        - name: name
+          in: query
+          schema:
+            type: string
+        - name: orderId
+          in: path
+          description: orderId
+          required: true
+          schema:
+            type: integer
+            format: int64
       responses:
         "200":
           description: OK
           content:
-            '*/*':
+            "*/*":
               schema:
-                $ref: '#/components/schemas/OrderDTO'
+                $ref: "#/components/schemas/OrderDTO"
         "401":
           description: Unauthorized
           content: {}
@@ -341,18 +341,18 @@ paths:
   /products:
     get:
       tags:
-      - products-rest-controller
+        - products-rest-controller
       summary: getProducts
       operationId: getProductsUsingGET
       responses:
         "200":
           description: OK
           content:
-            '*/*':
+            "*/*":
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/ProductDTO'
+                  $ref: "#/components/schemas/ProductDTO"
         "401":
           description: Unauthorized
           content: {}
@@ -365,24 +365,24 @@ paths:
   /products/{productId}:
     get:
       tags:
-      - products-rest-controller
+        - products-rest-controller
       summary: getProduct
       operationId: getProductUsingGET
       parameters:
-      - name: productId
-        in: path
-        description: productId
-        required: true
-        schema:
-          type: integer
-          format: int64
+        - name: productId
+          in: path
+          description: productId
+          required: true
+          schema:
+            type: integer
+            format: int64
       responses:
         "200":
           description: OK
           content:
-            '*/*':
+            "*/*":
               schema:
-                $ref: '#/components/schemas/ProductDTO'
+                $ref: "#/components/schemas/ProductDTO"
         "401":
           description: Unauthorized
           content: {}
@@ -395,7 +395,7 @@ paths:
   /register:
     post:
       tags:
-      - customer-rest-controller
+        - customer-rest-controller
       summary: createCustomer
       operationId: createCustomerUsingPOST
       requestBody:
@@ -403,15 +403,15 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/UserDTOReq'
+              $ref: "#/components/schemas/UserDTOReq"
         required: true
       responses:
         "201":
           description: Created
           content:
-            '*/*':
+            "*/*":
               schema:
-                $ref: '#/components/schemas/UserDTORes'
+                $ref: "#/components/schemas/UserDTORes"
         "401":
           description: Unauthorized
           content: {}
@@ -429,11 +429,11 @@ components:
       type: object
       properties:
         _links:
-          $ref: '#/components/schemas/Links'
+          $ref: "#/components/schemas/Links"
         cartItems:
           type: array
           items:
-            $ref: '#/components/schemas/CartItemDTORes'
+            $ref: "#/components/schemas/CartItemDTORes"
         deliveryCost:
           type: integer
           format: int32
@@ -459,7 +459,7 @@ components:
         _links:
           type: array
           items:
-            $ref: '#/components/schemas/Link'
+            $ref: "#/components/schemas/Link"
         productId:
           type: integer
           format: int64
@@ -471,7 +471,7 @@ components:
       type: object
       properties:
         _links:
-          $ref: '#/components/schemas/Links'
+          $ref: "#/components/schemas/Links"
         productId:
           type: integer
           format: int64
@@ -485,7 +485,7 @@ components:
         _links:
           type: array
           items:
-            $ref: '#/components/schemas/Link'
+            $ref: "#/components/schemas/Link"
         address:
           maxLength: 100
           minLength: 0
@@ -494,7 +494,8 @@ components:
         phone:
           maxLength: 20
           minLength: 0
-          pattern: "^\\+[1-9][0-9]?[\\s]*\\(?\\d{3}\\)?[-\\s]?\\d{3}[-\\s]?\\d{2}[-\\\
+          pattern:
+            "^\\+[1-9][0-9]?[\\s]*\\(?\\d{3}\\)?[-\\s]?\\d{3}[-\\s]?\\d{2}[-\\\
             s]?\\d{2}$"
           type: string
     ContactsDTORes:
@@ -502,7 +503,7 @@ components:
       type: object
       properties:
         _links:
-          $ref: '#/components/schemas/Links'
+          $ref: "#/components/schemas/Links"
         address:
           maxLength: 100
           minLength: 0
@@ -511,7 +512,8 @@ components:
         phone:
           maxLength: 20
           minLength: 0
-          pattern: "^\\+[1-9][0-9]?[\\s]*\\(?\\d{3}\\)?[-\\s]?\\d{3}[-\\s]?\\d{2}[-\\\
+          pattern:
+            "^\\+[1-9][0-9]?[\\s]*\\(?\\d{3}\\)?[-\\s]?\\d{3}[-\\s]?\\d{2}[-\\\
             s]?\\d{2}$"
           type: string
     CreditCardDTO:
@@ -538,7 +540,7 @@ components:
         profile:
           type: string
         rel:
-          $ref: '#/components/schemas/LinkRelation'
+          $ref: "#/components/schemas/LinkRelation"
         title:
           type: string
         type:
@@ -557,7 +559,7 @@ components:
       type: object
       properties:
         _links:
-          $ref: '#/components/schemas/Links'
+          $ref: "#/components/schemas/Links"
         billNumber:
           type: integer
           format: int32
@@ -587,13 +589,13 @@ components:
     ProductDTO:
       title: ProductDTO
       required:
-      - alcohol
-      - price
-      - volume
+        - alcohol
+        - price
+        - volume
       type: object
       properties:
         _links:
-          $ref: '#/components/schemas/Links'
+          $ref: "#/components/schemas/Links"
         age:
           maximum: 2000
           exclusiveMaximum: false
@@ -631,7 +633,7 @@ components:
         _links:
           type: array
           items:
-            $ref: '#/components/schemas/Link'
+            $ref: "#/components/schemas/Link"
         address:
           maxLength: 100
           minLength: 0
@@ -655,7 +657,8 @@ components:
         phone:
           maxLength: 20
           minLength: 0
-          pattern: "^\\+[1-9][0-9]?[\\s]*\\(?\\d{3}\\)?[-\\s]?\\d{3}[-\\s]?\\d{2}[-\\\
+          pattern:
+            "^\\+[1-9][0-9]?[\\s]*\\(?\\d{3}\\)?[-\\s]?\\d{3}[-\\s]?\\d{2}[-\\\
             s]?\\d{2}$"
           type: string
     UserDTORes:
@@ -663,7 +666,7 @@ components:
       type: object
       properties:
         _links:
-          $ref: '#/components/schemas/Links'
+          $ref: "#/components/schemas/Links"
         address:
           maxLength: 100
           minLength: 0
@@ -687,7 +690,8 @@ components:
         phone:
           maxLength: 20
           minLength: 0
-          pattern: "^\\+[1-9][0-9]?[\\s]*\\(?\\d{3}\\)?[-\\s]?\\d{3}[-\\s]?\\d{2}[-\\\
+          pattern:
+            "^\\+[1-9][0-9]?[\\s]*\\(?\\d{3}\\)?[-\\s]?\\d{3}[-\\s]?\\d{2}[-\\\
             s]?\\d{2}$"
           type: string
 x-original-swagger-version: "2.0"

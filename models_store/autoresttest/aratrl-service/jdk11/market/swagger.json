@@ -11,9 +11,7 @@
       "url": "http://www.apache.org/licenses/LICENSE-2.0"
     }
   },
-  "schemes": [
-    "http"
-  ],
+  "schemes": ["http"],
   "host": "localhost:8081",
   "basePath": "/",
   "tags": [
@@ -41,14 +39,10 @@
   "paths": {
     "/customer": {
       "get": {
-        "tags": [
-          "customer-rest-controller"
-        ],
+        "tags": ["customer-rest-controller"],
         "summary": "getCustomer",
         "operationId": "getCustomerUsingGET",
-        "produces": [
-          "*/*"
-        ],
+        "produces": ["*/*"],
         "parameters": [
           {
             "name": "name",
@@ -78,14 +72,10 @@
     },
     "/customer/cart": {
       "get": {
-        "tags": [
-          "cart-rest-controller"
-        ],
+        "tags": ["cart-rest-controller"],
         "summary": "getCart",
         "operationId": "getCartUsingGET",
-        "produces": [
-          "*/*"
-        ],
+        "produces": ["*/*"],
         "parameters": [
           {
             "name": "name",
@@ -113,17 +103,11 @@
         }
       },
       "put": {
-        "tags": [
-          "cart-rest-controller"
-        ],
+        "tags": ["cart-rest-controller"],
         "summary": "addItem",
         "operationId": "addItemUsingPUT",
-        "consumes": [
-          "application/json"
-        ],
-        "produces": [
-          "*/*"
-        ],
+        "consumes": ["application/json"],
+        "produces": ["*/*"],
         "parameters": [
           {
             "in": "body",
@@ -163,14 +147,10 @@
         }
       },
       "delete": {
-        "tags": [
-          "cart-rest-controller"
-        ],
+        "tags": ["cart-rest-controller"],
         "summary": "clearCart",
         "operationId": "clearCartUsingDELETE",
-        "produces": [
-          "*/*"
-        ],
+        "produces": ["*/*"],
         "parameters": [
           {
             "name": "name",
@@ -200,17 +180,11 @@
     },
     "/customer/cart/delivery": {
       "put": {
-        "tags": [
-          "cart-rest-controller"
-        ],
+        "tags": ["cart-rest-controller"],
         "summary": "setDelivery",
         "operationId": "setDeliveryUsingPUT",
-        "consumes": [
-          "application/json"
-        ],
-        "produces": [
-          "*/*"
-        ],
+        "consumes": ["application/json"],
+        "produces": ["*/*"],
         "parameters": [
           {
             "name": "included",
@@ -251,17 +225,11 @@
     },
     "/customer/cart/pay": {
       "post": {
-        "tags": [
-          "cart-rest-controller"
-        ],
+        "tags": ["cart-rest-controller"],
         "summary": "payByCard",
         "operationId": "payByCardUsingPOST",
-        "consumes": [
-          "application/json"
-        ],
-        "produces": [
-          "*/*"
-        ],
+        "consumes": ["application/json"],
+        "produces": ["*/*"],
         "parameters": [
           {
             "in": "body",
@@ -300,14 +268,10 @@
     },
     "/customer/contacts": {
       "get": {
-        "tags": [
-          "contacts-rest-controller"
-        ],
+        "tags": ["contacts-rest-controller"],
         "summary": "getContacts",
         "operationId": "getContactsUsingGET",
-        "produces": [
-          "*/*"
-        ],
+        "produces": ["*/*"],
         "parameters": [
           {
             "name": "name",
@@ -335,17 +299,11 @@
         }
       },
       "put": {
-        "tags": [
-          "contacts-rest-controller"
-        ],
+        "tags": ["contacts-rest-controller"],
         "summary": "updateContacts",
         "operationId": "updateContactsUsingPUT",
-        "consumes": [
-          "application/json"
-        ],
-        "produces": [
-          "*/*"
-        ],
+        "consumes": ["application/json"],
+        "produces": ["*/*"],
         "parameters": [
           {
             "in": "body",
@@ -387,14 +345,10 @@
     },
     "/customer/orders": {
       "get": {
-        "tags": [
-          "orders-rest-controller"
-        ],
+        "tags": ["orders-rest-controller"],
         "summary": "getOrders",
         "operationId": "getOrdersUsingGET",
-        "produces": [
-          "*/*"
-        ],
+        "produces": ["*/*"],
         "parameters": [
           {
             "name": "name",
@@ -427,14 +381,10 @@
     },
     "/customer/orders/{orderId}": {
       "get": {
-        "tags": [
-          "orders-rest-controller"
-        ],
+        "tags": ["orders-rest-controller"],
         "summary": "getOrder",
         "operationId": "getOrderUsingGET",
-        "produces": [
-          "*/*"
-        ],
+        "produces": ["*/*"],
         "parameters": [
           {
             "name": "name",
@@ -473,14 +423,10 @@
     },
     "/products": {
       "get": {
-        "tags": [
-          "products-rest-controller"
-        ],
+        "tags": ["products-rest-controller"],
         "summary": "getProducts",
         "operationId": "getProductsUsingGET",
-        "produces": [
-          "*/*"
-        ],
+        "produces": ["*/*"],
         "responses": {
           "200": {
             "description": "OK",
@@ -505,14 +451,10 @@
     },
     "/products/{productId}": {
       "get": {
-        "tags": [
-          "products-rest-controller"
-        ],
+        "tags": ["products-rest-controller"],
         "summary": "getProduct",
         "operationId": "getProductUsingGET",
-        "produces": [
-          "*/*"
-        ],
+        "produces": ["*/*"],
         "parameters": [
           {
             "name": "productId",
@@ -545,17 +487,11 @@
     },
     "/register": {
       "post": {
-        "tags": [
-          "customer-rest-controller"
-        ],
+        "tags": ["customer-rest-controller"],
         "summary": "createCustomer",
         "operationId": "createCustomerUsingPOST",
-        "consumes": [
-          "application/json"
-        ],
-        "produces": [
-          "*/*"
-        ],
+        "consumes": ["application/json"],
+        "produces": ["*/*"],
         "parameters": [
           {
             "in": "body",
@@ -813,11 +749,7 @@
     },
     "ProductDTO": {
       "type": "object",
-      "required": [
-        "alcohol",
-        "price",
-        "volume"
-      ],
+      "required": ["alcohol", "price", "volume"],
       "properties": {
         "_links": {
           "$ref": "#/definitions/Links"
@@ -947,3 +879,4 @@
     }
   }
 }
+
