@@ -52,7 +52,7 @@ class AutoRestTestModel:
                 f.write(script_content)
 
             with open(os.path.join(temp_dir, ".env"), "w") as f:
-                f.write(f"OPENAI_API_KEY={settings.API_KEY}")
+                f.write(f"OPENAI_API_KEY={settings.OPENAI_API_KEY}")
 
             print(f"Executing script: {script_path}")
 
@@ -62,6 +62,7 @@ class AutoRestTestModel:
 
             process = await asyncio.create_subprocess_exec(
                 python_executable,
+                "-u",
                 script_path,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
@@ -76,12 +77,10 @@ class AutoRestTestModel:
                         break
                     print(f"{prefix}: {line.decode().strip()}")
 
-            await asyncio.gather(
-                stream_output(process.stdout, "stdout"),
-                stream_output(process.stderr, "stderr"),
-            )
+            stdout_task = asyncio.create_task(stream_output(process.stdout, "stdout"))
+            stderr_task = asyncio.create_task(stream_output(process.stderr, "stderr"))
 
-            await process.wait()
+            await asyncio.gather(stdout_task, stderr_task)
             print("Script execution finished.")
 
             if process.returncode != 0:
