@@ -1,11 +1,15 @@
 import asyncio
+import json
 import os
 import shutil
 import tempfile
-import json
+
 import yaml
-from app.models.test_config import TestConfiguration, TestRunResult
+from fastapi import HTTPException
+from prance import ResolvingParser
+
 from app.core.config import settings
+from app.models.test_config import TestConfiguration, TestRunResult
 
 
 class AutoRestTestModel:
@@ -17,10 +21,20 @@ class AutoRestTestModel:
         temp_dir = tempfile.mkdtemp()
         print(f"Temporary directory created: {temp_dir}")
         try:
-            spec_data = json.loads(config.spec_file_content)
+            try:
+                spec_data = json.loads(config.spec_file_content)
+            except json.JSONDecodeError as e:
+                raise HTTPException(status_code=400, detail=f"Invalid JSON format: {e}")
             spec_path = os.path.join(temp_dir, "spec.yaml")
             with open(spec_path, "w") as f:
                 yaml.dump(spec_data, f)
+
+            try:
+                ResolvingParser(spec_path, strict=False)
+            except Exception as e:
+                raise HTTPException(
+                    status_code=400, detail=f"Invalid OpenAPI specification: {e}"
+                )
 
             config_path = os.path.join(temp_dir, "configurations.py")
             print("Creating configurations.py...")
@@ -42,7 +56,11 @@ class AutoRestTestModel:
             temp_src_dir = os.path.join(temp_dir, "src")
             temp_cache_dir = os.path.join(temp_src_dir, "cache")
 
-            shutil.copytree("models_store/autoresttest/src", temp_src_dir, ignore=shutil.ignore_patterns('cache'))
+            shutil.copytree(
+                "models_store/autoresttest/src",
+                temp_src_dir,
+                ignore=shutil.ignore_patterns("cache"),
+            )
 
             async with self._lock:
                 if os.path.exists(master_cache_dir):

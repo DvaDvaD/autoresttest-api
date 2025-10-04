@@ -11,7 +11,11 @@ from openai import OpenAI
 from dotenv import load_dotenv
 import os
 
-from src.graph.specification_parser import ParameterProperties, SchemaProperties, SpecificationParser
+from src.graph.specification_parser import (
+    ParameterProperties,
+    SchemaProperties,
+    SpecificationParser,
+)
 from src.prompts.generator_prompts import FIX_JSON_OBJ
 from src.prompts.system_prompts import DEFAULT_SYSTEM_MESSAGE, FIX_JSON_SYSTEM_MESSAGE
 
@@ -19,8 +23,9 @@ from configurations import OPENAI_LLM_ENGINE, DEFAULT_TEMPERATURE
 
 load_dotenv()
 
+
 def remove_nulls(item):
-    if hasattr(item, 'to_dict'):
+    if hasattr(item, "to_dict"):
         return item.to_dict()
     elif isinstance(item, dict):
         return {k: remove_nulls(v) for k, v in item.items() if v and remove_nulls(v)}
@@ -29,15 +34,26 @@ def remove_nulls(item):
     else:
         return item
 
-def get_param_combinations(operation_parameters: Dict[str, ParameterProperties]) -> List[Tuple[str]]:
+
+def get_param_combinations(
+    operation_parameters: Dict[str, ParameterProperties],
+) -> List[Tuple[str]]:
     param_list = get_params(operation_parameters)
     return get_combinations(param_list)
 
-def get_body_combinations(operation_body: Dict[str, SchemaProperties]) -> Dict[str, List[Tuple[str]]]:
-    return {k: get_combinations(v) for k, v in get_request_body_params(operation_body).items()}
+
+def get_body_combinations(
+    operation_body: Dict[str, SchemaProperties],
+) -> Dict[str, List[Tuple[str]]]:
+    return {
+        k: get_combinations(v)
+        for k, v in get_request_body_params(operation_body).items()
+    }
+
 
 def get_body_object_combinations(body_schema: SchemaProperties) -> List[Tuple[str]]:
     return get_combinations(get_body_params(body_schema))
+
 
 def get_combinations(arr) -> List[Tuple]:
     combinations = []
@@ -45,25 +61,31 @@ def get_combinations(arr) -> List[Tuple]:
     # Empirically determined - 16 is max number before size grows too large, 10 is a good balance for ensuring proper storage (> 21k)
 
     if len(arr) >= max_size:
-        for i in range(0, len(arr)-max_size):
-            subset = arr[i:i+max_size]
-            combinations.extend(itertools.chain.from_iterable(
-                itertools.combinations(subset, j) for j in range(1, max_size + 1)
-            ))
+        for i in range(0, len(arr) - max_size):
+            subset = arr[i : i + max_size]
+            combinations.extend(
+                itertools.chain.from_iterable(
+                    itertools.combinations(subset, j) for j in range(1, max_size + 1)
+                )
+            )
             print(combinations)
-        for size in range(max_size+1, len(arr)+1):
-            for i in range(0, len(arr)-size+1):
-                subset = arr[i:i+size]
+        for size in range(max_size + 1, len(arr) + 1):
+            for i in range(0, len(arr) - size + 1):
+                subset = arr[i : i + size]
                 combinations.extend([tuple(subset)])
     else:
-        combinations.extend(itertools.chain.from_iterable(
-            itertools.combinations(arr, i) for i in range(1, len(arr) + 1)
-        ))
+        combinations.extend(
+            itertools.chain.from_iterable(
+                itertools.combinations(arr, i) for i in range(1, len(arr) + 1)
+            )
+        )
 
     return combinations
 
+
 def get_params(operation_parameters: Dict[str, ParameterProperties]) -> List[str]:
     return list(operation_parameters.keys()) if operation_parameters is not None else []
+
 
 def get_required_params(operation_parameters: Dict[str, ParameterProperties]) -> Set:
     required_parameters = set()
@@ -71,6 +93,7 @@ def get_required_params(operation_parameters: Dict[str, ParameterProperties]) ->
         if parameter_properties.required:
             required_parameters.add(parameter)
     return required_parameters
+
 
 def get_required_body_params(operation_body: SchemaProperties) -> Optional[Set]:
     if operation_body is None:
@@ -89,9 +112,11 @@ def get_required_body_params(operation_body: SchemaProperties) -> Optional[Set]:
         return None
     return required_body
 
+
 def encode_dict_as_key(dictionary: Dict) -> str:
     json_str = json.dumps(dictionary, sort_keys=True)
     return hashlib.sha256(json_str.encode()).hexdigest()
+
 
 def get_body_params(body: SchemaProperties) -> List[str]:
     if body is None:
@@ -100,13 +125,14 @@ def get_body_params(body: SchemaProperties) -> List[str]:
     elif body.properties and body.type == "object":
         body_params = []
         for key, value in body.properties.items():
-                body_params.append(key)
+            body_params.append(key)
         return body_params
 
     elif body.items and body.type == "array":
         return get_body_params(body.items)
 
     return []
+
 
 def get_response_params(response: SchemaProperties, response_params: List):
     if response is None:
@@ -121,6 +147,7 @@ def get_response_params(response: SchemaProperties, response_params: List):
     elif response.items:
         get_response_params(response.items, response_params)
 
+
 def get_response_param_mappings(response: SchemaProperties, response_mappings):
     if response is None:
         return
@@ -134,8 +161,15 @@ def get_response_param_mappings(response: SchemaProperties, response_mappings):
         get_response_param_mappings(response.items, response_mappings)
 
 
-def get_request_body_params(operation_body: Dict[str, SchemaProperties]) -> Dict[str, List[str]]:
-    return {k: get_body_params(v) for k, v in operation_body.items()} if operation_body is not None else {}
+def get_request_body_params(
+    operation_body: Dict[str, SchemaProperties],
+) -> Dict[str, List[str]]:
+    return (
+        {k: get_body_params(v) for k, v in operation_body.items()}
+        if operation_body is not None
+        else {}
+    )
+
 
 def get_object_shallow_mappings(thing: Any) -> Optional[Dict[str, Any]]:
     """
@@ -153,16 +187,19 @@ def get_object_shallow_mappings(thing: Any) -> Optional[Dict[str, Any]]:
         mappings = get_object_shallow_mappings(thing[0])
     return mappings
 
+
 def compose_json_fix_prompt(invalid_json_str: str):
     prompt = FIX_JSON_OBJ
     prompt += invalid_json_str
     return prompt
 
+
 def attempt_fix_json(invalid_json_str: str):
     language_model = OpenAILanguageModel(temperature=0.3)
     json_prompt = compose_json_fix_prompt(invalid_json_str)
-    fixed_json = language_model.query(user_message=json_prompt, system_message=FIX_JSON_SYSTEM_MESSAGE,
-                                           json_mode=True)
+    fixed_json = language_model.query(
+        user_message=json_prompt, system_message=FIX_JSON_SYSTEM_MESSAGE, json_mode=True
+    )
     try:
         fixed_json = json.loads(fixed_json)
         return fixed_json
@@ -172,9 +209,11 @@ def attempt_fix_json(invalid_json_str: str):
         print(f"Fixed JSON string: {fixed_json}")
         return {}
 
+
 def encode_dictionary(dictionary) -> str:
     json_str = json.dumps(dictionary, sort_keys=True)
     return hashlib.sha256(json_str.encode()).hexdigest()
+
 
 def is_json_seriable(data):
     try:
@@ -183,21 +222,23 @@ def is_json_seriable(data):
     except:
         return False
 
+
 # Pricing for OpenAI API usage as of January 18, 2025
 
 INPUT_COST_PER_TOKEN = {
     "gpt-4o": 2.5e-6,
     "gpt-4o-mini": 0.15e-6,
     "o1": 15e-6,
-    "o1-mini": 3e-6
+    "o1-mini": 3e-6,
 }
 
 OUTPUT_COST_PER_TOKEN = {
     "gpt-4o": 10e-6,
     "gpt-4o-mini": 0.6e-6,
     "o1": 60e-6,
-    "o1-mini": 12e-6
+    "o1-mini": 12e-6,
 }
+
 
 class OpenAILanguageModel:
     cumulative_cost = 0
@@ -207,14 +248,26 @@ class OpenAILanguageModel:
     def get_cumulative_cost():
         return OpenAILanguageModel.cumulative_cost
 
-    def __init__(self, engine = OPENAI_LLM_ENGINE, temperature = DEFAULT_TEMPERATURE, max_tokens = 4000):
+    def __init__(
+        self, engine=OPENAI_LLM_ENGINE, temperature=DEFAULT_TEMPERATURE, max_tokens=4000
+    ):
         self.api_key = os.getenv("OPENAI_API_KEY")
+        self.openai_base_url = os.getenv("OPENAI_BASE_URL")
         if self.api_key is None or self.api_key.strip() == "":
-            raise ValueError("OPENAI API key is required for OpenAI language model, found None or empty string.")
-        self.client = OpenAI(api_key=self.api_key)
+            raise ValueError(
+                "OPENAI API key is required for OpenAI language model, found None or empty string."
+            )
+        self.client = OpenAI(
+            base_url="https://generativelanguage.googleapis.com/v1beta/openai/",
+            api_key=self.api_key,
+        )
         self.engine = engine
         self.temperature = temperature
         self.max_tokens = max_tokens
+
+        print(f"OpenAI base URL: {self.openai_base_url}")
+        print(f"OpenAI API key: {self.api_key}")
+        print(f"OpenAI model code: {self.engine}")
 
     def _generate_cache_key(self, user_message, system_message, json_mode):
         key_data = {
@@ -227,7 +280,9 @@ class OpenAILanguageModel:
         }
         return encode_dictionary(key_data)
 
-    def query(self, user_message, system_message = DEFAULT_SYSTEM_MESSAGE, json_mode = False) -> str:
+    def query(
+        self, user_message, system_message=DEFAULT_SYSTEM_MESSAGE, json_mode=False
+    ) -> str:
         cache_key = self._generate_cache_key(user_message, system_message, json_mode)
         if cache_key in OpenAILanguageModel.cache:
             return OpenAILanguageModel.cache[cache_key]
@@ -237,33 +292,46 @@ class OpenAILanguageModel:
                 model=self.engine,
                 messages=[
                     {"role": "system", "content": system_message},
-                    {"role": "user", "content": user_message}
+                    {"role": "user", "content": user_message},
                 ],
                 max_tokens=self.max_tokens,
                 temperature=self.temperature,
-                response_format={"type":"json_object"}
+                response_format={"type": "json_object"},
             )
         else:
             response = self.client.chat.completions.create(
                 model=self.engine,
                 messages=[
                     {"role": "system", "content": system_message},
-                    {"role": "user", "content": user_message}
+                    {"role": "user", "content": user_message},
                 ],
                 max_tokens=self.max_tokens,
-                temperature=self.temperature
+                temperature=self.temperature,
             )
 
-        input_tokens = response.usage.prompt_tokens if hasattr(response.usage, "prompt_tokens") else 0
-        output_tokens = response.usage.completion_tokens if hasattr(response.usage, "completion_tokens") else 0
+        input_tokens = (
+            response.usage.prompt_tokens
+            if hasattr(response.usage, "prompt_tokens")
+            else 0
+        )
+        output_tokens = (
+            response.usage.completion_tokens
+            if hasattr(response.usage, "completion_tokens")
+            else 0
+        )
         if self.engine in INPUT_COST_PER_TOKEN:
-            OpenAILanguageModel.cumulative_cost += input_tokens * INPUT_COST_PER_TOKEN[self.engine]
+            OpenAILanguageModel.cumulative_cost += (
+                input_tokens * INPUT_COST_PER_TOKEN[self.engine]
+            )
         if self.engine in OUTPUT_COST_PER_TOKEN:
-            OpenAILanguageModel.cumulative_cost += output_tokens * OUTPUT_COST_PER_TOKEN[self.engine]
+            OpenAILanguageModel.cumulative_cost += (
+                output_tokens * OUTPUT_COST_PER_TOKEN[self.engine]
+            )
         result = response.choices[0].message.content.strip()
 
         OpenAILanguageModel.cache[cache_key] = result
         return result
+
 
 class EmbeddingModel:
     def __init__(self):
@@ -288,6 +356,7 @@ class EmbeddingModel:
                     reconstructed_parameter.append(char)
         return "".join(reconstructed_parameter)
 
+
 def construct_db_dir():
     db_path = os.path.join(os.path.dirname(__file__), "cache/q_tables")
     if not os.path.exists(db_path):
@@ -296,6 +365,7 @@ def construct_db_dir():
     db_path = os.path.join(os.path.dirname(__file__), "cache/graphs")
     if not os.path.exists(db_path):
         os.makedirs(db_path)
+
 
 def construct_basic_token(token):
     username = token.get("username")

@@ -5,8 +5,8 @@ from typing import Optional, Dict
 class TestConfiguration(BaseModel):
     spec_file_content: str
     api_url_override: Optional[str] = None
-    llm_engine: str = "gpt-4o-mini"
-    llm_engine_temperature: float = 0.7
+    llm_engine: str = "gemini-2.0-flash-lite"
+    llm_engine_temperature: float = 0.1
     use_cached_graph: bool = True
     use_cached_q_tables: bool = True
     rl_agent_learning_rate: float = 0.1
