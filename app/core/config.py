@@ -8,6 +8,8 @@ class Settings(BaseSettings):
     OPENAI_BASE_URL: Optional[str] = None
     MODEL_PATH: str = "models_store/autorest_model.pkl"
     PROJECT_NAME: str = "AutoRestTest Model Service"
+    UPSTASH_REDIS_REST_URL: str = "some_url"
+    UPSTASH_REDIS_REST_TOKEN: str = "some_token"
 
     class Config:
         env_file = ".env"

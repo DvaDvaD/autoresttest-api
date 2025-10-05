@@ -13,9 +13,6 @@ from app.models.test_config import TestConfiguration, TestRunResult
 
 
 class AutoRestTestModel:
-    def __init__(self, model_path: str):
-        self._lock = asyncio.Lock()
-
     async def run_test(self, config: TestConfiguration) -> TestRunResult:
         print("model_service.run_test invoked.")
         temp_dir = tempfile.mkdtemp()
@@ -52,19 +49,8 @@ class AutoRestTestModel:
                 f.write("ENABLE_HEADER_AGENT = False\n")
             print("configurations.py created.")
 
-            master_cache_dir = "models_store/autoresttest/src/cache"
-            temp_src_dir = os.path.join(temp_dir, "src")
-            temp_cache_dir = os.path.join(temp_src_dir, "cache")
-
-            shutil.copytree(
-                "models_store/autoresttest/src",
-                temp_src_dir,
-                ignore=shutil.ignore_patterns("cache"),
-            )
-
-            async with self._lock:
-                if os.path.exists(master_cache_dir):
-                    shutil.copytree(master_cache_dir, temp_cache_dir)
+            src_dir = "models_store/autoresttest/src"
+            shutil.copytree(src_dir, os.path.join(temp_dir, "src"))
 
             script_to_run = "AutoRestTest.py"
             original_script_path = f"models_store/autoresttest/{script_to_run}"
@@ -92,7 +78,11 @@ class AutoRestTestModel:
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
                 cwd=temp_dir,
-                env={"OPENAI_API_KEY": settings.OPENAI_API_KEY},
+                env={
+                    "OPENAI_API_KEY": settings.OPENAI_API_KEY,
+                    "UPSTASH_REDIS_REST_URL": settings.UPSTASH_REDIS_REST_URL,
+                    "UPSTASH_REDIS_REST_TOKEN": settings.UPSTASH_REDIS_REST_TOKEN,
+                },
             )
 
             async def stream_output(stream, prefix):
@@ -112,21 +102,13 @@ class AutoRestTestModel:
 
             if process.returncode != 0:
                 print("Error running script. See stderr output above for details.")
-                # Handle error appropriately
                 return TestRunResult(
                     summary={"message": "Test execution failed"}, raw_file_urls={}
                 )
 
-            async with self._lock:
-                if os.path.exists(master_cache_dir):
-                    shutil.rmtree(master_cache_dir)
-                shutil.copytree(temp_cache_dir, master_cache_dir)
-
-            # For now, return a placeholder. We'll implement the real result later.
-            print("Returning result.")
             return TestRunResult(
                 summary={"message": "Test completed successfully"}, raw_file_urls={}
             )
+
         finally:
             print(f"Temporary directory not deleted for inspection: {temp_dir}")
-            # shutil.rmtree(temp_dir)

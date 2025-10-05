@@ -30,5 +30,5 @@ class TestRunResult(BaseModel):
 
 
 class ProgressUpdate(BaseModel):
-    progressPercentage: float
-    currentOperation: str
+    progress_percentage: float
+    current_operation: str

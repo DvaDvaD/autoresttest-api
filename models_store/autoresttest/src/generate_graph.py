@@ -15,6 +15,14 @@ class OperationNode:
         self.outgoing_edges: List[OperationEdge] = []
         self.tentative_edges: List[OperationEdge] = []
 
+    def to_dict(self):
+        return {
+            "operation_id": self.operation_id,
+            "operation_properties": self.operation_properties.to_dict(),
+            "outgoing_edges": [edge.to_dict() for edge in self.outgoing_edges],
+            "tentative_edges": [edge.to_dict() for edge in self.tentative_edges],
+        }
+
 class OperationEdge:
     def __init__(self, source: OperationNode, destination: OperationNode, similar_parameters: Dict[str, List[SimilarityValue]]=None):
         if similar_parameters is None:
@@ -22,6 +30,13 @@ class OperationEdge:
         self.source: OperationNode = source
         self.destination: OperationNode = destination
         self.similar_parameters: Dict[str, List[SimilarityValue]] = similar_parameters # have parameters as the key (similarity value has response param and in_value)
+
+    def to_dict(self):
+        return {
+            "source": self.source.operation_id,
+            "destination": self.destination.operation_id,
+            "similar_parameters": {k: [v.to_dict() for v in val] for k, val in self.similar_parameters.items()},
+        }
 
 class OperationGraph:
     def __init__(self, spec_path, spec_name=None, spec_parser: SpecificationParser = None, embedding_model=None):

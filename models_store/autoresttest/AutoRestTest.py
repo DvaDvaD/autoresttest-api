@@ -1,7 +1,7 @@
 import argparse
 import json
 import os
-import shelve
+from upstash_redis import Redis
 
 from src.generate_graph import OperationGraph
 from src.marl import QLearning
@@ -10,22 +10,54 @@ from src.request_generator import RequestGenerator
 from dotenv import load_dotenv
 
 from src.graph.specification_parser import SpecificationParser
-from src.utils import OpenAILanguageModel, construct_db_dir, is_json_seriable, EmbeddingModel, get_api_url, INPUT_COST_PER_TOKEN
+from src.utils import (
+    OpenAILanguageModel,
+    construct_db_dir,
+    is_json_seriable,
+    EmbeddingModel,
+    get_api_url,
+    INPUT_COST_PER_TOKEN,
+)
 
-from configurations import USE_CACHED_GRAPH, USE_CACHED_TABLE, \
-    LEARNING_RATE, DISCOUNT_FACTOR, MAX_EXPLORATION, TIME_DURATION, MUTATION_RATE, SPECIFICATION_LOCATION, \
-    ENABLE_HEADER_AGENT, OPENAI_LLM_ENGINE
+from configurations import (
+    USE_CACHED_GRAPH,
+    USE_CACHED_TABLE,
+    LEARNING_RATE,
+    DISCOUNT_FACTOR,
+    MAX_EXPLORATION,
+    TIME_DURATION,
+    MUTATION_RATE,
+    SPECIFICATION_LOCATION,
+    ENABLE_HEADER_AGENT,
+    OPENAI_LLM_ENGINE,
+)
 
 load_dotenv()
 
+
 def parse_args():
-    parser = argparse.ArgumentParser(description='Generate requests based on API specification.')
-    parser.add_argument("num_specs", choices=["one", "many"],
-                        help="Specifies the number of specifications: 'one' or 'many'")
-    parser.add_argument("local_test", type=lambda x: (str(x).lower() == 'true'),
-                        help="Specifies whether the test is local (true/false)")
-    parser.add_argument("-s", "--spec_name", type=str, default=None, help="Optional name of the specification")
+    parser = argparse.ArgumentParser(
+        description="Generate requests based on API specification."
+    )
+    parser.add_argument(
+        "num_specs",
+        choices=["one", "many"],
+        help="Specifies the number of specifications: 'one' or 'many'",
+    )
+    parser.add_argument(
+        "local_test",
+        type=lambda x: (str(x).lower() == "true"),
+        help="Specifies whether the test is local (true/false)",
+    )
+    parser.add_argument(
+        "-s",
+        "--spec_name",
+        type=str,
+        default=None,
+        help="Optional name of the specification",
+    )
     return parser.parse_args()
+
 
 def output_q_table(q_learning: QLearning, spec_name):
     parameter_table = q_learning.parameter_agent.q_table
@@ -34,13 +66,19 @@ def output_q_table(q_learning: QLearning, spec_name):
     operation_table = q_learning.operation_agent.q_table
     data_source_table = q_learning.data_source_agent.q_table
     dependency_table = q_learning.dependency_agent.q_table
-    header_table = q_learning.header_agent.q_table if q_learning.header_agent.q_table else "Disabled"
+    header_table = (
+        q_learning.header_agent.q_table
+        if q_learning.header_agent.q_table
+        else "Disabled"
+    )
 
     simplified_param_table = {}
     for operation, operation_values in parameter_table.items():
         simplified_param_table[operation] = {"params": {}, "body": {}}
         for parameter, parameter_values in operation_values["params"].items():
-            simplified_param_table[operation]["params"][str(parameter)] = parameter_values
+            simplified_param_table[operation]["params"][str(parameter)] = (
+                parameter_values
+            )
         for body, body_values in operation_values["body"].items():
             simplified_param_table[operation]["body"][str(body)] = body_values
 
@@ -60,7 +98,7 @@ def output_q_table(q_learning: QLearning, spec_name):
         "VALUE AGENT": value_table,
         "BODY OBJECT AGENT": simplified_body_table,
         "DATA SOURCE AGENT": data_source_table,
-        "DEPENDENCY AGENT": dependency_table
+        "DEPENDENCY AGENT": dependency_table,
     }
     output_dir = os.path.join(os.path.dirname(__file__), f"data/{spec_name}")
 
@@ -69,6 +107,7 @@ def output_q_table(q_learning: QLearning, spec_name):
 
     with open(f"{output_dir}/q_tables.json", "w") as f:
         json.dump(compiled_q_table, f, indent=2)
+
 
 def output_successes(q_learning: QLearning, spec_name: str):
     output_dir = os.path.join(os.path.dirname(__file__), f"data/{spec_name}")
@@ -88,6 +127,7 @@ def output_successes(q_learning: QLearning, spec_name: str):
     with open(f"{output_dir}/successful_primitives.json", "w") as f:
         json.dump(q_learning.successful_primitives, f, indent=2)
 
+
 def output_errors(q_learning: QLearning, spec_name: str):
     output_dir = os.path.join(os.path.dirname(__file__), f"data/{spec_name}")
 
@@ -96,10 +136,13 @@ def output_errors(q_learning: QLearning, spec_name: str):
 
     seriable_errors = {}
     for operation_idx, unique_errors in q_learning.unique_errors.items():
-        seriable_errors[operation_idx] = [error for error in unique_errors if is_json_seriable(error)]
+        seriable_errors[operation_idx] = [
+            error for error in unique_errors if is_json_seriable(error)
+        ]
 
     with open(f"{output_dir}/server_errors.json", "w") as f:
         json.dump(seriable_errors, f, indent=2)
+
 
 def output_operation_status_codes(q_learning: QLearning, spec_name: str):
     output_dir = os.path.join(os.path.dirname(__file__), f"data/{spec_name}")
@@ -110,7 +153,10 @@ def output_operation_status_codes(q_learning: QLearning, spec_name: str):
     with open(f"{output_dir}/operation_status_codes.json", "w") as f:
         json.dump(q_learning.operation_response_counter, f, indent=2)
 
-def output_report(q_learning: QLearning, spec_name: str, spec_parser: SpecificationParser):
+
+def output_report(
+    q_learning: QLearning, spec_name: str, spec_parser: SpecificationParser
+):
     output_dir = os.path.join(os.path.dirname(__file__), f"data/{spec_name}")
 
     if not os.path.exists(output_dir):
@@ -138,7 +184,15 @@ def output_report(q_learning: QLearning, spec_name: str, spec_parser: Specificat
         "Status Code Distribution": dict(q_learning.responses),
         "Number of Total Operations": len(q_learning.operation_agent.q_table),
         "Number of Successfully Processed Operations": len(unique_processed_200s),
-        "Percentage of Successfully Processed Operations": str(round(len(unique_processed_200s) / len(q_learning.operation_agent.q_table) * 100, 2)) + "%",
+        "Percentage of Successfully Processed Operations": str(
+            round(
+                len(unique_processed_200s)
+                / len(q_learning.operation_agent.q_table)
+                * 100,
+                2,
+            )
+        )
+        + "%",
         "Number of Unique Server Errors": unique_errors,
         "Operations with Server Errors": q_learning.errors,
     }
@@ -152,69 +206,78 @@ def parse_specification_location(spec_loc: str):
     file_name, ext = os.path.splitext(file_name)
     return directory, file_name, ext
 
+
 class AutoRestTest:
-    def __init__(self, spec_dir: str):
+    def __init__(self, spec_dir: str, redis_client: Redis):
         self.spec_dir = spec_dir
         self.local_test = True
         self.is_naive = False
+        self.redis = redis_client
         construct_db_dir()
         self.use_cached_graph = USE_CACHED_GRAPH
         self.use_cached_table = USE_CACHED_TABLE
 
-    def init_graph(self, spec_name: str, spec_path: str, embedding_model: EmbeddingModel) -> OperationGraph:
+    def init_graph(
+        self, spec_name: str, spec_path: str, embedding_model: EmbeddingModel
+    ) -> OperationGraph:
         spec_parser = SpecificationParser(spec_path=spec_path, spec_name=spec_name)
         api_url = get_api_url(spec_parser, self.local_test)
-        operation_graph = OperationGraph(spec_path=spec_path, spec_name=spec_name, spec_parser=spec_parser, embedding_model=embedding_model)
-        request_generator = RequestGenerator(operation_graph=operation_graph, api_url=api_url, is_naive=self.is_naive)
+        operation_graph = OperationGraph(
+            spec_path=spec_path,
+            spec_name=spec_name,
+            spec_parser=spec_parser,
+            embedding_model=embedding_model,
+        )
+        request_generator = RequestGenerator(
+            operation_graph=operation_graph, api_url=api_url, is_naive=self.is_naive
+        )
         operation_graph.assign_request_generator(request_generator)
         return operation_graph
 
     def generate_graph(self, spec_name: str, ext: str, embedding_model: EmbeddingModel):
         spec_path = f"{self.spec_dir}/{spec_name}{ext}"
-        db_graph = os.path.join(os.path.dirname(__file__), f"src/cache/graphs/{spec_name}")
+        graph_key = f"graph:{spec_name}"
         print("CREATING SEMANTIC OPERATION DEPENDECY GRAPH...")
-        with shelve.open(db_graph) as db:
 
-            loaded_from_shelf = False
-            if spec_name in db and self.use_cached_graph:
-                print(f"Loading graph for {spec_name} from shelve.")
-                operation_graph = self.init_graph(spec_name, spec_path, embedding_model)
+        cached_graph = self.redis.get(graph_key)
+        if cached_graph and self.use_cached_graph:
+            print(f"Loading graph for {spec_name} from Redis.")
+            graph_properties = json.loads(cached_graph)
+            operation_graph = self.init_graph(spec_name, spec_path, embedding_model)
+            operation_graph.operation_edges = graph_properties["edges"]
+            operation_graph.operation_nodes = graph_properties["nodes"]
+            print(f"Loaded graph for {spec_name} from Redis.")
+        else:
+            print(f"Initializing new graph for {spec_name}.")
+            operation_graph = self.init_graph(spec_name, spec_path, embedding_model)
+            operation_graph.create_graph()
 
-                try:
-                    graph_properties = db[spec_name]
-                    operation_graph.operation_edges = graph_properties["edges"]
-                    operation_graph.operation_nodes = graph_properties["nodes"]
-                    print(f"Loaded graph for {spec_name} from shelve.")
-                    loaded_from_shelf = True
+            graph_properties = {
+                "edges": operation_graph.operation_edges,
+                "nodes": operation_graph.operation_nodes,
+            }
 
-                except Exception as e:
-                    print("Error loading graph from shelve.")
-                    loaded_from_shelf = False
+            try:
+                self.redis.set(graph_key, json.dumps(graph_properties))
+                print(f"Saving graph with key {graph_key} to Redis")
+            except Exception as e:
+                print(f"Error saving graph to Redis: {e}.")
 
-            if not loaded_from_shelf:
-                print(f"Initializing new graph for {spec_name}.")
-                operation_graph = self.init_graph(spec_name, spec_path, embedding_model)
-                operation_graph.create_graph()
-
-                graph_properties = {
-                    "edges": operation_graph.operation_edges,
-                    "nodes": operation_graph.operation_nodes
-                }
-
-                try:
-                    db[spec_name] = graph_properties
-                except Exception as e:
-                    print("Error saving graph to shelve.")
-
-                print(f"Initialized new graph for {spec_name}.")
+            print(f"Initialized new graph for {spec_name}.")
         print("GRAPH CREATED!!!")
         return operation_graph
 
     def perform_q_learning(self, operation_graph: OperationGraph, spec_name: str):
         print("INITIATING Q-TABLES...")
-        q_learning = QLearning(operation_graph, alpha=LEARNING_RATE, gamma=DISCOUNT_FACTOR, epsilon=MAX_EXPLORATION,
-                               time_duration=TIME_DURATION, mutation_rate=MUTATION_RATE)
-        db_q_table = os.path.join(os.path.dirname(__file__), f"src/cache/q_tables/{spec_name}")
+        q_learning = QLearning(
+            operation_graph,
+            alpha=LEARNING_RATE,
+            gamma=DISCOUNT_FACTOR,
+            epsilon=MAX_EXPLORATION,
+            time_duration=TIME_DURATION,
+            mutation_rate=MUTATION_RATE,
+        )
+        q_table_key = f"q_table:{spec_name}"
 
         q_learning.operation_agent.initialize_q_table()
         print("Initialized operation agent Q-table.")
@@ -229,51 +292,48 @@ class AutoRestTest:
 
         output_q_table(q_learning, spec_name)
 
-        with shelve.open(db_q_table) as db:
-            loaded_value_from_shelf = False
-            loaded_header_from_shelf = False
+        cached_q_table = self.redis.get(q_table_key)
+        if cached_q_table and self.use_cached_table:
+            print(f"Loading Q-tables for {spec_name} from Redis.")
+            compiled_q_table = json.loads(cached_q_table)
 
-            if spec_name in db and self.use_cached_table:
-                print(f"Loading Q-tables for {spec_name} from shelve.")
+            try:
+                q_learning.value_agent.q_table = compiled_q_table["value"]
+                print(f"Initialized value agent's Q-table for {spec_name} from Redis.")
+            except Exception as e:
+                print("Error loading value agent from Redis.")
 
-                compiled_q_table = db[spec_name]
-
+            if ENABLE_HEADER_AGENT:
                 try:
-                    q_learning.value_agent.q_table = compiled_q_table["value"]
-                    print(f"Initialized value agent's Q-table for {spec_name} from shelve.")
-                    loaded_value_from_shelf = True
+                    q_learning.header_agent.q_table = compiled_q_table["header"]
+                    print(
+                        f"Initialized header agent's Q-table for {spec_name} from Redis."
+                    )
                 except Exception as e:
-                    print("Error loading value agent from shelve.")
-                    loaded_value_from_shelf = False
+                    print("Error loading header agent from Redis.")
+        else:
+            q_learning.value_agent.initialize_q_table()
+            print(f"Initialized new value agent Q-table for {spec_name}.")
 
-                if ENABLE_HEADER_AGENT:
-                    try:
-                        q_learning.header_agent.q_table = compiled_q_table["header"]
-                        print(f"Initialized header agent's Q-table for {spec_name} from shelve.")
-                        loaded_header_from_shelf = True if q_learning.header_agent.q_table else False
-                        # If the header agent is disabled, the Q-table will be None.
-                    except Exception as e:
-                        print("Error loading header agent from shelve.")
-                        loaded_header_from_shelf = False
-
-
-            if not loaded_value_from_shelf:
-                q_learning.value_agent.initialize_q_table()
-                print(f"Initialized new value agent Q-table for {spec_name}.")
-
-            if ENABLE_HEADER_AGENT and not loaded_header_from_shelf:
+            if ENABLE_HEADER_AGENT:
                 q_learning.header_agent.initialize_q_table()
                 print(f"Initialized new header agent Q-table for {spec_name}.")
             elif not ENABLE_HEADER_AGENT:
                 q_learning.header_agent.q_table = None
 
-            try:
-                db[spec_name] = {
-                    "value": q_learning.value_agent.q_table,
-                    "header": q_learning.header_agent.q_table
-                }
-            except Exception as e:
-                print("Error saving Q-tables to shelve.")
+        try:
+            self.redis.set(
+                q_table_key,
+                json.dumps(
+                    {
+                        "value": q_learning.value_agent.q_table,
+                        "header": q_learning.header_agent.q_table,
+                    },
+                ),
+            )
+            print(f"Saving Q-table with key {q_table_key} to Redis")
+        except Exception as e:
+            print(f"Error saving Q-tables to Redis {e}.")
 
         output_q_table(q_learning, spec_name)
         print("Q-TABLES INITIALIZED...")
@@ -285,7 +345,10 @@ class AutoRestTest:
 
     def print_performance(self):
         if OPENAI_LLM_ENGINE in INPUT_COST_PER_TOKEN:
-            print("Total cost of the tool: $", round(OpenAILanguageModel.get_cumulative_cost(), 2))
+            print(
+                "Total cost of the tool: $",
+                round(OpenAILanguageModel.get_cumulative_cost(), 2),
+            )
         else:
             print("Price tracking is not available for the selected OpenAI engine.")
 
@@ -308,7 +371,13 @@ class AutoRestTest:
         output_report(q_learning, spec_name, operation_graph.spec_parser)
         print("AUTO-REST-TEST COMPLETED!!!")
 
+
 if __name__ == "__main__":
-    specification_directory, specification_name, ext = parse_specification_location(SPECIFICATION_LOCATION)
-    auto_rest_test = AutoRestTest(spec_dir=specification_directory)
+    specification_directory, specification_name, ext = parse_specification_location(
+        SPECIFICATION_LOCATION
+    )
+    redis_client = Redis.from_env()
+    auto_rest_test = AutoRestTest(
+        spec_dir=specification_directory, redis_client=redis_client
+    )
     auto_rest_test.run_single(specification_name, ext)

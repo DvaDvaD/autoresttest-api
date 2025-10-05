@@ -265,9 +265,9 @@ class OpenAILanguageModel:
         self.temperature = temperature
         self.max_tokens = max_tokens
 
-        print(f"OpenAI base URL: {self.openai_base_url}")
-        print(f"OpenAI API key: {self.api_key}")
-        print(f"OpenAI model code: {self.engine}")
+        # print(f"OpenAI base URL: {self.openai_base_url}")
+        # print(f"OpenAI API key: {self.api_key}")
+        # print(f"OpenAI model code: {self.engine}")
 
     def _generate_cache_key(self, user_message, system_message, json_mode):
         key_data = {
