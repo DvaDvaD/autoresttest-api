@@ -2,7 +2,9 @@ import argparse
 import hashlib
 import json
 import os
+from datetime import datetime
 from upstash_redis import Redis
+from minio import Minio
 
 from src.generate_graph import OperationGraph
 from src.marl import QLearning
@@ -366,6 +368,49 @@ class AutoRestTest:
         else:
             print("Price tracking is not available for the selected OpenAI engine.")
 
+    def upload_results_to_minio(self, spec_name: str):
+        """Uploads all result files from the data directory to MinIO."""
+        print("UPLOADING RESULTS TO MINIO...")
+        try:
+            minio_endpoint = os.getenv("MINIO_ENDPOINT", "localhost:9000")
+            access_key = os.getenv("MINIO_ACCESS_KEY")
+            secret_key = os.getenv("MINIO_SECRET_KEY")
+            bucket_name = os.getenv("MINIO_BUCKET", "autoresttest-results")
+
+            if not all([access_key, secret_key]):
+                print("MinIO credentials not found in environment variables. Skipping upload.")
+                return
+
+            client = Minio(
+                minio_endpoint,
+                access_key=access_key,
+                secret_key=secret_key,
+                secure=False
+            )
+
+            if not client.bucket_exists(bucket_name):
+                print(f"Bucket '{bucket_name}' not found. Creating it.")
+                client.make_bucket(bucket_name)
+            else:
+                print(f"Found bucket '{bucket_name}'.")
+
+            output_dir = os.path.join(os.path.dirname(__file__), f"data/{spec_name}")
+            timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+
+            for file_name in os.listdir(output_dir):
+                local_file_path = os.path.join(output_dir, file_name)
+                if os.path.isfile(local_file_path):
+                    object_name = f"{spec_name}/{timestamp}/{file_name}"
+                    client.fput_object(
+                        bucket_name, object_name, local_file_path
+                    )
+                    print(f"Successfully uploaded {file_name} to {bucket_name}/{object_name}")
+            
+            print("MINIO UPLOAD COMPLETED!!!")
+
+        except Exception as e:
+            print(f"An error occurred during MinIO upload: {e}")
+
     def run_all(self):
         for spec in os.listdir(self.spec_dir):
             spec_name = spec.split(".")[0]
@@ -387,6 +432,7 @@ class AutoRestTest:
         output_errors(q_learning, spec_name)
         output_operation_status_codes(q_learning, spec_name)
         output_report(q_learning, spec_name, operation_graph.spec_parser)
+        self.upload_results_to_minio(spec_name)
         print("AUTO-REST-TEST COMPLETED!!!")
 
 
