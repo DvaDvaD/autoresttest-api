@@ -10,6 +10,8 @@ class Settings(BaseSettings):
     PROJECT_NAME: str = "AutoRestTest Model Service"
     UPSTASH_REDIS_REST_URL: str = "some_url"
     UPSTASH_REDIS_REST_TOKEN: str = "some_token"
+    MINIO_ACCESS_KEY: str = "some_access_key"
+    MINIO_SECRET_KEY: str = "some_secret_key"
 
     class Config:
         env_file = ".env"

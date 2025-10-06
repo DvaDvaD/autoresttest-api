@@ -1,4 +1,5 @@
 import argparse
+import hashlib
 import json
 import os
 from upstash_redis import Redis
@@ -207,6 +208,15 @@ def parse_specification_location(spec_loc: str):
     return directory, file_name, ext
 
 
+def get_file_hash(file_path):
+    """Computes the MD5 hash of a file's content."""
+    hasher = hashlib.md5()
+    with open(file_path, "rb") as f:
+        buf = f.read()
+        hasher.update(buf)
+    return hasher.hexdigest()
+
+
 class AutoRestTest:
     def __init__(self, spec_dir: str, redis_client: Redis):
         self.spec_dir = spec_dir
@@ -234,9 +244,11 @@ class AutoRestTest:
         operation_graph.assign_request_generator(request_generator)
         return operation_graph
 
-    def generate_graph(self, spec_name: str, ext: str, embedding_model: EmbeddingModel):
+    def generate_graph(
+        self, spec_name: str, ext: str, embedding_model: EmbeddingModel, spec_hash: str
+    ):
         spec_path = f"{self.spec_dir}/{spec_name}{ext}"
-        graph_key = f"graph:{spec_name}"
+        graph_key = f"graph:{spec_name}:{spec_hash}"
         print("CREATING SEMANTIC OPERATION DEPENDECY GRAPH...")
 
         cached_graph = self.redis.get(graph_key)
@@ -267,7 +279,9 @@ class AutoRestTest:
         print("GRAPH CREATED!!!")
         return operation_graph
 
-    def perform_q_learning(self, operation_graph: OperationGraph, spec_name: str):
+    def perform_q_learning(
+        self, operation_graph: OperationGraph, spec_name: str, spec_hash: str
+    ):
         print("INITIATING Q-TABLES...")
         q_learning = QLearning(
             operation_graph,
@@ -277,7 +291,7 @@ class AutoRestTest:
             time_duration=TIME_DURATION,
             mutation_rate=MUTATION_RATE,
         )
-        q_table_key = f"q_table:{spec_name}"
+        q_table_key = f"q_table:{spec_name}:{spec_hash}"
 
         q_learning.operation_agent.initialize_q_table()
         print("Initialized operation agent Q-table.")
@@ -361,8 +375,12 @@ class AutoRestTest:
     def run_single(self, spec_name: str, ext: str):
         print("BEGINNING AUTO-REST-TEST...")
         embedding_model = EmbeddingModel()
-        operation_graph = self.generate_graph(spec_name, ext, embedding_model)
-        q_learning = self.perform_q_learning(operation_graph, spec_name)
+        spec_path = f"{self.spec_dir}/{spec_name}{ext}"
+        spec_hash = get_file_hash(spec_path)
+        operation_graph = self.generate_graph(
+            spec_name, ext, embedding_model, spec_hash
+        )
+        q_learning = self.perform_q_learning(operation_graph, spec_name, spec_hash)
         self.print_performance()
         output_q_table(q_learning, spec_name)
         output_successes(q_learning, spec_name)
