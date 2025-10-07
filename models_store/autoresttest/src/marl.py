@@ -22,7 +22,7 @@ from src.value_generator import identify_generator, randomize_string, random_gen
 
 
 class QLearning:
-    def __init__(self, operation_graph, alpha=0.1, gamma=0.9, epsilon=0.3, time_duration=600, mutation_rate=0.3):
+    def __init__(self, operation_graph, alpha=0.1, gamma=0.9, epsilon=0.3, time_duration=600, mutation_rate=0.3, progress_callback=None):
         self.q_table = {}
         self.operation_graph: OperationGraph = operation_graph
         self.api_url = operation_graph.request_generator.api_url
@@ -38,7 +38,10 @@ class QLearning:
         self.data_source_agent = DataSourceAgent(operation_graph, alpha, gamma, 0.7)
         self.dependency_agent = DependencyAgent(operation_graph, alpha, gamma, epsilon)
         self.time_duration = time_duration
+        self.progress_callback = progress_callback
         self.responses = defaultdict(int)
+        self.progress_update_interval = 2  # seconds
+        self.last_progress_update_time = 0
 
         self.errors = {}
         self.unique_errors = {}
@@ -862,29 +865,39 @@ class QLearning:
                         self.unique_errors[operation_id].append(data_signature)
 
     def tui_output(self, start_time, operation_id):
+        current_time = time.time()
+        if (current_time - self.last_progress_update_time) > self.progress_update_interval:
+            time_elapsed_percentage = ((time.time() - start_time) / self.time_duration) * 100
+            if self.progress_callback:
+                # Scale the progress to fit within the 15%-90% range allocated for Q-Learning
+                scaled_percentage = 15 + (time_elapsed_percentage * 0.75)
+                details = f"Attempting operation: {operation_id}"
+                self.progress_callback("Q-Learning", scaled_percentage, details)
 
-        unique_processed_200s = set()
-        for operation_idx, status_codes in self.operation_response_counter.items():
-            for status_code in status_codes:
-                if status_code // 100 == 2:
-                    unique_processed_200s.add(operation_idx)
-        not_hit_operations = set()
-        for operation_idx in self.operation_graph.operation_nodes.keys():
-            if operation_idx not in unique_processed_200s:
-                not_hit_operations.add(operation_idx)
+            unique_processed_200s = set()
+            for operation_idx, status_codes in self.operation_response_counter.items():
+                for status_code in status_codes:
+                    if status_code // 100 == 2:
+                        unique_processed_200s.add(operation_idx)
+            not_hit_operations = set()
+            for operation_idx in self.operation_graph.operation_nodes.keys():
+                if operation_idx not in unique_processed_200s:
+                    not_hit_operations.add(operation_idx)
 
-        unique_errors = 0
-        for operation_idx in self.unique_errors:
-            unique_errors += len(self.unique_errors[operation_idx])
+            unique_errors = 0
+            for operation_idx in self.unique_errors:
+                unique_errors += len(self.unique_errors[operation_idx])
 
-        print("=========================================================================")
-        print(f"Attempting operation: {operation_id}")
-        print(f"Status Code Counter: {dict(self.responses)}")
-        print(f"Number of unique server errors: {unique_errors}")
-        print(f"Number of successful operations: {len(unique_processed_200s)}")
-        print(f"Percentage of successful operations: {len(unique_processed_200s) / len(self.operation_graph.operation_nodes) * 100:.2f}%")
-        print("Time remaining: ", max(round(self.time_duration - (time.time() - start_time), 3), 0.01))
-        print("Percentage of time elapsed: ", str(round((time.time() - start_time) / self.time_duration * 100, 2)) + "%")
+            print("=========================================================================")
+            print(f"Attempting operation: {operation_id}")
+            print(f"Status Code Counter: {dict(self.responses)}")
+            print(f"Number of unique server errors: {unique_errors}")
+            print(f"Number of successful operations: {len(unique_processed_200s)}")
+            print(f"Percentage of successful operations: {len(unique_processed_200s) / len(self.operation_graph.operation_nodes) * 100:.2f}%")
+            print("Time remaining: ", max(round(self.time_duration - (time.time() - start_time), 3), 0.01))
+            print("Percentage of time elapsed: ", str(round(time_elapsed_percentage, 2)) + "%")
+
+            self.last_progress_update_time = current_time
 
     def run(self):
         self.execute_operations()

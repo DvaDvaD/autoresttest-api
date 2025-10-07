@@ -12,7 +12,7 @@ class TestConfiguration(BaseModel):
     rl_agent_learning_rate: float = 0.1
     rl_agent_discount_factor: float = 0.9
     rl_agent_max_exploration: float = 1.0
-    time_duration_seconds: int = 30
+    time_duration_seconds: int = 5
     mutation_rate: float = 0.2
 
 
@@ -27,8 +27,3 @@ class TestResult(BaseModel):
 class TestRunResult(BaseModel):
     summary: Dict
     raw_file_urls: Dict
-
-
-class ProgressUpdate(BaseModel):
-    progress_percentage: float
-    current_operation: str

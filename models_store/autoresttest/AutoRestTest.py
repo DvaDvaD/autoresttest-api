@@ -2,6 +2,7 @@ import argparse
 import hashlib
 import json
 import os
+import requests
 from datetime import datetime
 from upstash_redis import Redis
 from minio import Minio
@@ -43,14 +44,13 @@ def parse_args():
         description="Generate requests based on API specification."
     )
     parser.add_argument(
+        "job_id", type=str, help="The unique ID for the current job run."
+    )
+    parser.add_argument(
         "num_specs",
         choices=["one", "many"],
         help="Specifies the number of specifications: 'one' or 'many'",
-    )
-    parser.add_argument(
-        "local_test",
-        type=lambda x: (str(x).lower() == "true"),
-        help="Specifies whether the test is local (true/false)",
+        default="one",
     )
     parser.add_argument(
         "-s",
@@ -220,14 +220,35 @@ def get_file_hash(file_path):
 
 
 class AutoRestTest:
-    def __init__(self, spec_dir: str, redis_client: Redis):
+    def __init__(self, spec_dir: str, redis_client: Redis, job_id: str):
         self.spec_dir = spec_dir
+        self.job_id = job_id
         self.local_test = True
         self.is_naive = False
         self.redis = redis_client
         construct_db_dir()
         self.use_cached_graph = USE_CACHED_GRAPH
         self.use_cached_table = USE_CACHED_TABLE
+
+    def _update_progress(self, stage: str, percentage: float, details: str = ""):
+        """Sends a PATCH request to the Next.js backend to update job progress."""
+        backend_url = os.getenv("NEXTJS_BACKEND_URL")
+        api_key = os.getenv("INTERNAL_API_SECRET")
+
+        if not all([backend_url, api_key, self.job_id]):
+            print(
+                "Backend URL, API key, or Job ID not configured. Skipping progress update."
+            )
+            return
+
+        endpoint = f"{backend_url}/api/v1/jobs/{self.job_id}/status"
+        headers = {"Authorization": f"Bearer {api_key}"}
+        payload = {"stage": stage, "percentage": percentage, "details": details}
+
+        try:
+            requests.patch(endpoint, json=payload, headers=headers)
+        except requests.exceptions.RequestException as e:
+            print(f"Failed to send progress update: {e}")
 
     def init_graph(
         self, spec_name: str, spec_path: str, embedding_model: EmbeddingModel
@@ -292,6 +313,7 @@ class AutoRestTest:
             epsilon=MAX_EXPLORATION,
             time_duration=TIME_DURATION,
             mutation_rate=MUTATION_RATE,
+            progress_callback=self._update_progress,
         )
         q_table_key = f"q_table:{spec_name}:{spec_hash}"
 
@@ -378,14 +400,15 @@ class AutoRestTest:
             bucket_name = os.getenv("MINIO_BUCKET", "autoresttest-results")
 
             if not all([access_key, secret_key]):
-                print("MinIO credentials not found in environment variables. Skipping upload.")
+                print(
+                    "MinIO credentials not found in environment variables. Skipping upload."
+                )
                 return
 
             client = Minio(
                 minio_endpoint,
                 access_key=access_key,
                 secret_key=secret_key,
-                secure=False
             )
 
             if not client.bucket_exists(bucket_name):
@@ -401,11 +424,11 @@ class AutoRestTest:
                 local_file_path = os.path.join(output_dir, file_name)
                 if os.path.isfile(local_file_path):
                     object_name = f"{spec_name}/{timestamp}/{file_name}"
-                    client.fput_object(
-                        bucket_name, object_name, local_file_path
+                    client.fput_object(bucket_name, object_name, local_file_path)
+                    print(
+                        f"Successfully uploaded {file_name} to {bucket_name}/{object_name}"
                     )
-                    print(f"Successfully uploaded {file_name} to {bucket_name}/{object_name}")
-            
+
             print("MINIO UPLOAD COMPLETED!!!")
 
         except Exception as e:
@@ -418,30 +441,48 @@ class AutoRestTest:
             self.run_single(spec_name)
 
     def run_single(self, spec_name: str, ext: str):
+        self._update_progress("Initializing", 0, "Starting test run...")
         print("BEGINNING AUTO-REST-TEST...")
         embedding_model = EmbeddingModel()
         spec_path = f"{self.spec_dir}/{spec_name}{ext}"
         spec_hash = get_file_hash(spec_path)
+
+        self._update_progress(
+            "Generating Graph", 5, "Creating semantic operation dependency graph..."
+        )
         operation_graph = self.generate_graph(
             spec_name, ext, embedding_model, spec_hash
         )
+
+        self._update_progress(
+            "Initializing Q-Tables", 15, "Preparing for reinforcement learning..."
+        )
         q_learning = self.perform_q_learning(operation_graph, spec_name, spec_hash)
+
+        self._update_progress("Saving Results", 95, "Saving output files locally...")
         self.print_performance()
         output_q_table(q_learning, spec_name)
         output_successes(q_learning, spec_name)
         output_errors(q_learning, spec_name)
         output_operation_status_codes(q_learning, spec_name)
         output_report(q_learning, spec_name, operation_graph.spec_parser)
+
+        self._update_progress(
+            "Uploading Results", 99, "Uploading results to object storage..."
+        )
         self.upload_results_to_minio(spec_name)
+
+        self._update_progress("Completed", 100, "Test run finished successfully.")
         print("AUTO-REST-TEST COMPLETED!!!")
 
 
 if __name__ == "__main__":
+    args = parse_args()
     specification_directory, specification_name, ext = parse_specification_location(
         SPECIFICATION_LOCATION
     )
     redis_client = Redis.from_env()
     auto_rest_test = AutoRestTest(
-        spec_dir=specification_directory, redis_client=redis_client
+        spec_dir=specification_directory, redis_client=redis_client, job_id=args.job_id
     )
     auto_rest_test.run_single(specification_name, ext)

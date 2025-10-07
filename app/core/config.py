@@ -17,6 +17,9 @@ class Settings(BaseSettings):
     MINIO_ENDPOINT: str = "minio_endpoint"
     MINIO_BUCKET: str = "minio_bucket"
 
+    NEXTJS_BACKEND_URL: str = "some_url"
+    INTERNAL_API_SECRET: str = "some_secret"
+
     class Config:
         env_file = ".env"
 

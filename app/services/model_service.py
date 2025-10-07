@@ -75,6 +75,8 @@ class AutoRestTestModel:
                 python_executable,
                 "-u",
                 script_path,
+                "dummy-job-id-123",  # job_id
+                "one",  # num_specs
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
                 cwd=temp_dir,
@@ -82,6 +84,12 @@ class AutoRestTestModel:
                     "OPENAI_API_KEY": settings.OPENAI_API_KEY,
                     "UPSTASH_REDIS_REST_URL": settings.UPSTASH_REDIS_REST_URL,
                     "UPSTASH_REDIS_REST_TOKEN": settings.UPSTASH_REDIS_REST_TOKEN,
+                    "NEXTJS_BACKEND_URL": settings.NEXTJS_BACKEND_URL,
+                    "INTERNAL_API_SECRET": settings.INTERNAL_API_SECRET,
+                    "MINIO_ACCESS_KEY": settings.MINIO_ACCESS_KEY,
+                    "MINIO_SECRET_KEY": settings.MINIO_SECRET_KEY,
+                    "MINIO_ENDPOINT": settings.MINIO_ENDPOINT,
+                    "MINIO_BUCKET": settings.MINIO_BUCKET,
                 },
             )
 
