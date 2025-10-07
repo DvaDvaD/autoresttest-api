@@ -3,7 +3,8 @@ import hashlib
 import json
 import os
 import requests
-from datetime import datetime
+from datetime import datetime, timedelta
+from urllib.parse import urlparse
 from upstash_redis import Redis
 from minio import Minio
 
@@ -219,6 +220,11 @@ def get_file_hash(file_path):
     return hasher.hexdigest()
 
 
+def to_snake_case(text: str) -> str:
+    """Converts a string from Title Case to snake_case."""
+    return text.replace(" ", "_").lower()
+
+
 class AutoRestTest:
     def __init__(self, spec_dir: str, redis_client: Redis, job_id: str):
         self.spec_dir = spec_dir
@@ -391,19 +397,21 @@ class AutoRestTest:
             print("Price tracking is not available for the selected OpenAI engine.")
 
     def upload_results_to_minio(self, spec_name: str):
-        """Uploads all result files from the data directory to MinIO."""
+        """Uploads all result files and returns pre-signed URLs."""
         print("UPLOADING RESULTS TO MINIO...")
+        raw_file_urls = {}
         try:
-            minio_endpoint = os.getenv("MINIO_ENDPOINT", "localhost:9000")
+            minio_endpoint_str = os.getenv("MINIO_ENDPOINT", "localhost:9000")
             access_key = os.getenv("MINIO_ACCESS_KEY")
             secret_key = os.getenv("MINIO_SECRET_KEY")
             bucket_name = os.getenv("MINIO_BUCKET", "autoresttest-results")
 
             if not all([access_key, secret_key]):
-                print(
-                    "MinIO credentials not found in environment variables. Skipping upload."
-                )
-                return
+                print("MinIO credentials not found. Skipping upload.")
+                return raw_file_urls
+
+            parsed_url = urlparse(minio_endpoint_str)
+            minio_endpoint = parsed_url.netloc or parsed_url.path
 
             client = Minio(
                 minio_endpoint,
@@ -425,14 +433,21 @@ class AutoRestTest:
                 if os.path.isfile(local_file_path):
                     object_name = f"{spec_name}/{timestamp}/{file_name}"
                     client.fput_object(bucket_name, object_name, local_file_path)
-                    print(
-                        f"Successfully uploaded {file_name} to {bucket_name}/{object_name}"
+
+                    presigned_url = client.presigned_get_object(
+                        bucket_name, object_name, expires=timedelta(days=7)
                     )
+                    # Use snake_case for the key
+                    url_key = file_name.replace(".json", "").replace("_", " ")
+                    raw_file_urls[to_snake_case(url_key)] = presigned_url
+                    print(f"Successfully uploaded {file_name}")
 
             print("MINIO UPLOAD COMPLETED!!!")
 
         except Exception as e:
             print(f"An error occurred during MinIO upload: {e}")
+
+        return raw_file_urls
 
     def run_all(self):
         for spec in os.listdir(self.spec_dir):
@@ -470,7 +485,22 @@ class AutoRestTest:
         self._update_progress(
             "Uploading Results", 99, "Uploading results to object storage..."
         )
-        self.upload_results_to_minio(spec_name)
+        raw_file_urls = self.upload_results_to_minio(spec_name)
+
+        # Process report for final summary
+        report_path = os.path.join(
+            os.path.dirname(__file__), f"data/{spec_name}/report.json"
+        )
+        summary = {}
+        try:
+            with open(report_path, "r") as f:
+                report_data = json.load(f)
+            summary = {to_snake_case(key): value for key, value in report_data.items()}
+        except FileNotFoundError:
+            print("report.json not found, cannot generate summary.")
+
+        final_result = {"summary": summary, "raw_file_urls": raw_file_urls}
+        print(f"RESULT: {json.dumps(final_result)}")
 
         self._update_progress("Completed", 100, "Test run finished successfully.")
         print("AUTO-REST-TEST COMPLETED!!!")

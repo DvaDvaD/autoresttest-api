@@ -93,12 +93,22 @@ class AutoRestTestModel:
                 },
             )
 
+            result_holder = {}
+
             async def stream_output(stream, prefix):
                 while True:
                     line = await stream.readline()
                     if not line:
                         break
-                    print(f"{prefix}: {line.decode().strip()}")
+                    line_str = line.decode().strip()
+                    if line_str.startswith("RESULT:"):
+                        try:
+                            result_json = line_str.replace("RESULT: ", "", 1)
+                            result_holder['data'] = json.loads(result_json)
+                        except json.JSONDecodeError:
+                            print(f"Error decoding result JSON: {line_str}")
+                    else:
+                        print(f"{prefix}: {line_str}")
 
             stdout_task = asyncio.create_task(stream_output(process.stdout, "stdout"))
             stderr_task = asyncio.create_task(stream_output(process.stderr, "stderr"))
@@ -108,15 +118,18 @@ class AutoRestTestModel:
             await process.wait()
             print("Script execution finished.")
 
-            if process.returncode != 0:
-                print("Error running script. See stderr output above for details.")
+            if process.returncode == 0 and 'data' in result_holder:
+                final_result = result_holder['data']
+                return TestRunResult(
+                    summary=final_result.get('summary', {}),
+                    raw_file_urls=final_result.get('raw_file_urls', {})
+                )
+            else:
+                print("Error running script or result not found.")
                 return TestRunResult(
                     summary={"message": "Test execution failed"}, raw_file_urls={}
                 )
 
-            return TestRunResult(
-                summary={"message": "Test completed successfully"}, raw_file_urls={}
-            )
-
         finally:
             print(f"Temporary directory not deleted for inspection: {temp_dir}")
+
