@@ -247,7 +247,7 @@ class AutoRestTest:
             )
             return
 
-        endpoint = f"{backend_url}/api/v1/jobs/{self.job_id}/status"
+        endpoint = f"{backend_url}/api/v1/jobs/{self.job_id}/progress"
         headers = {"Authorization": f"Bearer {api_key}"}
         payload = {"stage": stage, "percentage": percentage, "details": details}
 
