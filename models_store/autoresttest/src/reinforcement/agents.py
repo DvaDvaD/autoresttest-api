@@ -303,15 +303,20 @@ class ValueAgent:
         self.gamma = gamma
         self.epsilon = epsilon
 
-    def initialize_q_table(self):
+    def initialize_q_table(self, progress_callback=None, progress_range=(0, 100)):
         responses = defaultdict(list)
         visited = set()
         request_generator = self.operation_graph.request_generator
-        #print("Initiating Value Agent Q-Table")
-        for operation_id, operation_node in self.operation_graph.operation_nodes.items():
-            if operation_id not in visited:
-                request_generator.value_depth_traversal(operation_node, self.q_table, responses, visited)
-        #print("Initiated Value Agent Q-Table")
+
+        # Pass the callback and range down to the recursive traversal function
+        request_generator.value_depth_traversal(
+            list(self.operation_graph.operation_nodes.values()),
+            self.q_table,
+            responses,
+            visited,
+            progress_callback=progress_callback,
+            progress_range=progress_range
+        )
 
     def get_action(self, operation_id):
         if random.random() < self.epsilon:

@@ -22,7 +22,7 @@ from src.value_generator import identify_generator, randomize_string, random_gen
 
 
 class QLearning:
-    def __init__(self, operation_graph, alpha=0.1, gamma=0.9, epsilon=0.3, time_duration=600, mutation_rate=0.3, progress_callback=None):
+    def __init__(self, operation_graph, alpha=0.1, gamma=0.9, epsilon=0.3, time_duration=600, mutation_rate=0.3, progress_callback=None, q_learning_progress_range=(0, 100)):
         self.q_table = {}
         self.operation_graph: OperationGraph = operation_graph
         self.api_url = operation_graph.request_generator.api_url
@@ -39,6 +39,7 @@ class QLearning:
         self.dependency_agent = DependencyAgent(operation_graph, alpha, gamma, epsilon)
         self.time_duration = time_duration
         self.progress_callback = progress_callback
+        self.q_learning_progress_range = q_learning_progress_range
         self.responses = defaultdict(int)
         self.progress_update_interval = 2  # seconds
         self.last_progress_update_time = 0
@@ -869,8 +870,9 @@ class QLearning:
         if (current_time - self.last_progress_update_time) > self.progress_update_interval:
             time_elapsed_percentage = ((time.time() - start_time) / self.time_duration) * 100
             if self.progress_callback:
-                # Scale the progress to fit within the 15%-90% range allocated for Q-Learning
-                scaled_percentage = 15 + (time_elapsed_percentage * 0.75)
+                start_perc, end_perc = self.q_learning_progress_range
+                range_size = end_perc - start_perc
+                scaled_percentage = start_perc + (time_elapsed_percentage * (range_size / 100))
                 details = f"Attempting operation: {operation_id}"
                 self.progress_callback("Q-Learning", scaled_percentage, details)
 

@@ -437,18 +437,34 @@ class RequestGenerator:
                 #        parameter_mappings[operation_id]['body'][mime][body_param][value] = 0
                 #        occurrences[body_param] = occurrences.get(body_param, 0) + 1
 
-    def value_depth_traversal(self, curr_node: 'OperationNode', parameter_mappings: Dict, responses: Dict[str, List], visited: Set):
+    def value_depth_traversal(self, nodes_to_visit: List['OperationNode'], parameter_mappings: Dict, responses: Dict[str, List], visited: Set, progress_callback=None, progress_range=(0, 100), total_nodes=None, nodes_processed=None):
+        if total_nodes is None:
+            total_nodes = len(nodes_to_visit)
+        if nodes_processed is None:
+            nodes_processed = [0]  # Use a list for mutable integer
+
+        curr_node = nodes_to_visit.pop(0)
         visited.add(curr_node.operation_id)
+        nodes_processed[0] += 1
+
+        if progress_callback:
+            internal_progress_perc = (nodes_processed[0] / total_nodes) * 100
+            start_perc, end_perc = progress_range
+            range_size = end_perc - start_perc
+            scaled_percentage = start_perc + (internal_progress_perc * (range_size / 100))
+            progress_callback(
+                "Initializing Q-Tables",
+                scaled_percentage,
+                f"Generating values for: {curr_node.operation_id}"
+            )
 
         for edge in curr_node.outgoing_edges:
             if edge.destination.operation_id not in visited:
-                self.value_depth_traversal(edge.destination, parameter_mappings, responses, visited)
+                self.value_depth_traversal(nodes_to_visit, parameter_mappings, responses, visited, progress_callback, progress_range, total_nodes, nodes_processed)
 
         print("Building value table generation for operation: ", curr_node.operation_id)
 
         occurrences = {}
-        #self.handle_dependent_values(curr_node, dependent_responses, occurrences, parameter_mappings, responses)
-
         desired_size = 10
         lowest_occurrences = min(occurrences.values()) if occurrences else 0
         if lowest_occurrences < desired_size:
@@ -457,8 +473,7 @@ class RequestGenerator:
                 response = self.create_and_send_request(curr_node, allow_retry=True, permitted_retries=i)
                 if response is not None:
                     possible_responses.append(response)
-                #elif response and response.response and response.response.ok:
-                #    responses[curr_node.operation_id].append(response)
+
             value_generator = SmartValueGenerator(operation_properties=curr_node.operation_properties)
             if possible_responses:
                 parameters, request_body = (
