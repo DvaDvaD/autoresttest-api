@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "mindpilot": {
+      "command": "npx",
+      "args": [
+        "@mindpilot/mcp@latest"
+      ]
+    }
+  }
+}

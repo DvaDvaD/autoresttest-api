@@ -16,6 +16,11 @@ class TestConfiguration(BaseModel):
     mutation_rate: float = 0.2
 
 
+class TestRunRequest(BaseModel):
+    job_id: str
+    config: TestConfiguration
+
+
 class TestResult(BaseModel):
     status: str
     total_requests: int
@@ -27,3 +32,4 @@ class TestResult(BaseModel):
 class TestRunResult(BaseModel):
     summary: Dict
     raw_file_urls: Dict
+    config: TestConfiguration

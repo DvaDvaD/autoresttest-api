@@ -9,11 +9,14 @@ from fastapi import HTTPException
 from prance import ResolvingParser
 
 from app.core.config import settings
-from app.models.test_config import TestConfiguration, TestRunResult
+from app.models.test_config import TestRunRequest, TestRunResult
 
 
 class AutoRestTestModel:
-    async def run_test(self, config: TestConfiguration) -> TestRunResult:
+    async def run_test(self, request_body: TestRunRequest) -> TestRunResult:
+        config = request_body.config
+        job_id = request_body.job_id
+
         print("model_service.run_test invoked.")
         temp_dir = tempfile.mkdtemp()
         print(f"Temporary directory created: {temp_dir}")
@@ -37,7 +40,8 @@ class AutoRestTestModel:
             print("Creating configurations.py...")
             with open(config_path, "w") as f:
                 f.write(f"SPECIFICATION_LOCATION = '{spec_path}'\n")
-                f.write(f"OPENAI_LLM_ENGINE = '{config.llm_engine}'\n")
+                # f.write(f"OPENAI_LLM_ENGINE = '{config.llm_engine}'\n")
+                f.write("OPENAI_LLM_ENGINE = 'gemini-2.0-flash-lite'\n")
                 f.write(f"DEFAULT_TEMPERATURE = {config.llm_engine_temperature}\n")
                 f.write(f"USE_CACHED_GRAPH = {config.use_cached_graph}\n")
                 f.write(f"USE_CACHED_TABLE = {config.use_cached_q_tables}\n")
@@ -75,7 +79,7 @@ class AutoRestTestModel:
                 python_executable,
                 "-u",
                 script_path,
-                "dummy-job-id-123",  # job_id
+                job_id,
                 "one",  # num_specs
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
@@ -104,7 +108,7 @@ class AutoRestTestModel:
                     if line_str.startswith("RESULT:"):
                         try:
                             result_json = line_str.replace("RESULT: ", "", 1)
-                            result_holder['data'] = json.loads(result_json)
+                            result_holder["data"] = json.loads(result_json)
                         except json.JSONDecodeError:
                             print(f"Error decoding result JSON: {line_str}")
                     else:
@@ -118,18 +122,20 @@ class AutoRestTestModel:
             await process.wait()
             print("Script execution finished.")
 
-            if process.returncode == 0 and 'data' in result_holder:
-                final_result = result_holder['data']
+            if process.returncode == 0 and "data" in result_holder:
+                final_result = result_holder["data"]
                 return TestRunResult(
-                    summary=final_result.get('summary', {}),
-                    raw_file_urls=final_result.get('raw_file_urls', {})
+                    summary=final_result.get("summary", {}),
+                    raw_file_urls=final_result.get("raw_file_urls", {}),
+                    config=request_body.config,
                 )
             else:
                 print("Error running script or result not found.")
                 return TestRunResult(
-                    summary={"message": "Test execution failed"}, raw_file_urls={}
+                    summary={"message": "Test execution failed"},
+                    raw_file_urls={},
+                    config=request_body.config,
                 )
 
         finally:
             print(f"Temporary directory not deleted for inspection: {temp_dir}")
-
