@@ -437,31 +437,25 @@ class RequestGenerator:
                 #        parameter_mappings[operation_id]['body'][mime][body_param][value] = 0
                 #        occurrences[body_param] = occurrences.get(body_param, 0) + 1
 
-    def value_depth_traversal(self, nodes_to_visit: List['OperationNode'], parameter_mappings: Dict, responses: Dict[str, List], visited: Set, progress_callback=None, progress_range=(0, 100), total_nodes=None, nodes_processed=None):
-        if total_nodes is None:
-            total_nodes = len(nodes_to_visit)
-        if nodes_processed is None:
-            nodes_processed = [0]  # Use a list for mutable integer
-
-        curr_node = nodes_to_visit.pop(0)
+    def value_depth_traversal(self, curr_node: 'OperationNode', parameter_mappings: Dict, responses: Dict[str, List], visited: Set, progress_callback=None, progress_range=(0, 100), total_nodes=None, nodes_processed=None):
+        # 1. Mark as visited to handle cycles
         visited.add(curr_node.operation_id)
-        nodes_processed[0] += 1
 
-        if progress_callback:
-            internal_progress_perc = (nodes_processed[0] / total_nodes) * 100
-            start_perc, end_perc = progress_range
-            range_size = end_perc - start_perc
-            scaled_percentage = start_perc + (internal_progress_perc * (range_size / 100))
-            progress_callback(
-                "Initializing Q-Tables",
-                scaled_percentage,
-                f"Generating values for: {curr_node.operation_id}"
-            )
-
+        # 2. Recurse on children first (DFS)
         for edge in curr_node.outgoing_edges:
             if edge.destination.operation_id not in visited:
-                self.value_depth_traversal(nodes_to_visit, parameter_mappings, responses, visited, progress_callback, progress_range, total_nodes, nodes_processed)
+                self.value_depth_traversal(
+                    edge.destination,
+                    parameter_mappings,
+                    responses,
+                    visited,
+                    progress_callback,
+                    progress_range,
+                    total_nodes,
+                    nodes_processed
+                )
 
+        # 3. After all children have returned, do the work for the current node.
         print("Building value table generation for operation: ", curr_node.operation_id)
 
         occurrences = {}
@@ -484,6 +478,20 @@ class RequestGenerator:
             self._validate_value_mappings(curr_node, parameter_mappings, parameters, request_body, occurrences)
 
         print("Completed value table generation for operation: ", curr_node.operation_id)
+
+        # 4. After work is done, report progress (post-order).
+        if nodes_processed is not None and total_nodes is not None:
+            nodes_processed[0] += 1
+            if progress_callback:
+                internal_progress_perc = (nodes_processed[0] / total_nodes) * 100
+                start_perc, end_perc = progress_range
+                range_size = end_perc - start_perc
+                scaled_percentage = start_perc + (internal_progress_perc * (range_size / 100))
+                progress_callback(
+                    "Initializing Q-Tables",
+                    scaled_percentage,
+                    f"Generated values for: {curr_node.operation_id}"
+                )
 
 
     def create_and_send_request(self, curr_node: 'OperationNode', requirement: RequestRequirements=None, allow_retry:bool=False, permitted_retries:int=1) -> RequestResponse:

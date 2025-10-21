@@ -308,15 +308,24 @@ class ValueAgent:
         visited = set()
         request_generator = self.operation_graph.request_generator
 
-        # Pass the callback and range down to the recursive traversal function
-        request_generator.value_depth_traversal(
-            list(self.operation_graph.operation_nodes.values()),
-            self.q_table,
-            responses,
-            visited,
-            progress_callback=progress_callback,
-            progress_range=progress_range
-        )
+        # Setup for progress reporting
+        all_nodes = list(self.operation_graph.operation_nodes.values())
+        total_nodes = len(all_nodes)
+        nodes_processed = [0]  # Use a list for mutable counter
+
+        # Loop to handle all nodes and disconnected components
+        for operation_node in all_nodes:
+            if operation_node.operation_id not in visited:
+                request_generator.value_depth_traversal(
+                    operation_node,
+                    self.q_table,
+                    responses,
+                    visited,
+                    progress_callback,
+                    progress_range,
+                    total_nodes,
+                    nodes_processed
+                )
 
     def get_action(self, operation_id):
         if random.random() < self.epsilon:
