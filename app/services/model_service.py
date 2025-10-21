@@ -9,38 +9,53 @@ from fastapi import HTTPException
 from prance import ResolvingParser
 
 from app.core.config import settings
-from app.models.test_config import TestRunRequest, TestRunResult
+from app.models.test_config import TestConfiguration, TestRunResult
 
 
 class AutoRestTestModel:
-    async def run_test(self, request_body: TestRunRequest) -> TestRunResult:
-        config = request_body.config
-        job_id = request_body.job_id
-
-        print("model_service.run_test invoked.")
-        temp_dir = tempfile.mkdtemp()
-        print(f"Temporary directory created: {temp_dir}")
+    def validate_and_prepare_config(self, config: TestConfiguration) -> dict:
+        """
+        Performs synchronous validation of the request config.
+        Raises HTTPException on failure.
+        Returns a dictionary of prepared data if successful.
+        """
+        print("Validating and preparing config...")
         try:
-            try:
-                spec_data = json.loads(config.spec_file_content)
-            except json.JSONDecodeError as e:
-                raise HTTPException(status_code=400, detail=f"Invalid JSON format: {e}")
-            spec_path = os.path.join(temp_dir, "spec.yaml")
-            with open(spec_path, "w") as f:
-                yaml.dump(spec_data, f)
+            spec_data = json.loads(config.spec_file_content)
+        except json.JSONDecodeError as e:
+            raise HTTPException(status_code=400, detail=f"Invalid JSON format: {e}")
 
-            try:
-                ResolvingParser(spec_path, strict=False)
-            except Exception as e:
-                raise HTTPException(
-                    status_code=400, detail=f"Invalid OpenAPI specification: {e}"
-                )
+        temp_dir = tempfile.mkdtemp()
+        spec_path = os.path.join(temp_dir, "spec.yaml")
+        with open(spec_path, "w") as f:
+            yaml.dump(spec_data, f)
 
+        try:
+            ResolvingParser(spec_path, strict=False)
+        except Exception as e:
+            shutil.rmtree(temp_dir)
+            raise HTTPException(
+                status_code=400, detail=f"Invalid OpenAPI specification: {e}"
+            )
+
+        return {"temp_dir": temp_dir, "spec_path": spec_path, "config": config}
+
+    async def execute_test_process(
+        self, prepared_data: dict, job_id: str
+    ) -> tuple[TestRunResult | None, str | None]:
+        """
+        Executes the long-running test process and returns a result or an error detail.
+        """
+        temp_dir = prepared_data["temp_dir"]
+        spec_path = prepared_data["spec_path"]
+        config = prepared_data["config"]
+        process = None
+        stderr_output = []
+
+        try:
             config_path = os.path.join(temp_dir, "configurations.py")
-            print("Creating configurations.py...")
             with open(config_path, "w") as f:
                 f.write(f"SPECIFICATION_LOCATION = '{spec_path}'\n")
-                # f.write(f"OPENAI_LLM_ENGINE = '{config.llm_engine}'\n")
                 f.write("OPENAI_LLM_ENGINE = 'gemini-2.0-flash-lite'\n")
                 f.write(f"DEFAULT_TEMPERATURE = {config.llm_engine_temperature}\n")
                 f.write(f"USE_CACHED_GRAPH = {config.use_cached_graph}\n")
@@ -51,7 +66,6 @@ class AutoRestTestModel:
                 f.write(f"TIME_DURATION = {config.time_duration_seconds}\n")
                 f.write(f"MUTATION_RATE = {config.mutation_rate}\n")
                 f.write("ENABLE_HEADER_AGENT = False\n")
-            print("configurations.py created.")
 
             src_dir = "models_store/autoresttest/src"
             shutil.copytree(src_dir, os.path.join(temp_dir, "src"))
@@ -62,14 +76,11 @@ class AutoRestTestModel:
 
             with open(original_script_path, "r") as f:
                 script_content = f.read()
-
             with open(script_path, "w") as f:
                 f.write(script_content)
 
             with open(os.path.join(temp_dir, ".env"), "w") as f:
                 f.write(f"OPENAI_API_KEY={settings.OPENAI_API_KEY}")
-
-            print(f"Executing script: {script_path}")
 
             python_executable = os.path.join(
                 os.environ.get("VIRTUAL_ENV", "/usr/bin"), "bin", "python"
@@ -80,7 +91,7 @@ class AutoRestTestModel:
                 "-u",
                 script_path,
                 job_id,
-                "one",  # num_specs
+                "one",
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
                 cwd=temp_dir,
@@ -99,13 +110,16 @@ class AutoRestTestModel:
 
             result_holder = {}
 
-            async def stream_output(stream, prefix):
+            async def stream_output(stream, prefix, output_list=None):
                 while True:
                     line = await stream.readline()
                     if not line:
                         break
                     line_str = line.decode().strip()
-                    if line_str.startswith("RESULT:"):
+                    if output_list is not None:
+                        output_list.append(line_str)
+
+                    if prefix == "stdout" and line_str.startswith("RESULT:"):
                         try:
                             result_json = line_str.replace("RESULT: ", "", 1)
                             result_holder["data"] = json.loads(result_json)
@@ -115,27 +129,33 @@ class AutoRestTestModel:
                         print(f"{prefix}: {line_str}")
 
             stdout_task = asyncio.create_task(stream_output(process.stdout, "stdout"))
-            stderr_task = asyncio.create_task(stream_output(process.stderr, "stderr"))
+            stderr_task = asyncio.create_task(
+                stream_output(process.stderr, "stderr", stderr_output)
+            )
 
             await asyncio.gather(stdout_task, stderr_task)
-
             await process.wait()
-            print("Script execution finished.")
 
             if process.returncode == 0 and "data" in result_holder:
                 final_result = result_holder["data"]
-                return TestRunResult(
+                result = TestRunResult(
                     summary=final_result.get("summary", {}),
                     raw_file_urls=final_result.get("raw_file_urls", {}),
-                    config=request_body.config,
+                    config=config,
                 )
+                return result, None
             else:
-                print("Error running script or result not found.")
-                return TestRunResult(
-                    summary={"message": "Test execution failed"},
-                    raw_file_urls={},
-                    config=request_body.config,
-                )
-
+                if stderr_output:
+                    error_detail = (
+                        "Test script failed: The developer is too broke to pay for LLMs"
+                    )
+                else:
+                    error_detail = "Test execution failed with a non-zero exit code but no error message."
+                return None, error_detail
         finally:
-            print(f"Temporary directory not deleted for inspection: {temp_dir}")
+            if process and process.returncode is None:
+                print("Process cancelled, terminating...")
+                process.terminate()
+                await process.wait()
+            print(f"Cleaning up temporary directory: {temp_dir}")
+            shutil.rmtree(temp_dir)
