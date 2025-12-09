@@ -23,6 +23,10 @@ public class Cart implements Serializable {
 	@Column(name = "id")
 	private long id;
 
+  @OneToOne
+  @JoinColumn(name = "user_account_id")
+  private UserAccount userAccount;
+
 	@OneToMany(fetch = FetchType.EAGER, cascade = CascadeType.ALL, orphanRemoval = true,
 		targetEntity = CartItem.class, mappedBy = "cart")
 	private List<CartItem> cartItems = new ArrayList<>(0);

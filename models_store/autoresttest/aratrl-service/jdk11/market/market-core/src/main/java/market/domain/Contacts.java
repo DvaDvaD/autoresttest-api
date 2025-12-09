@@ -29,6 +29,10 @@ public class Contacts implements Serializable {
 	@Column(name = "city_region", nullable = false)
 	private String cityAndRegion;
 
+  @OneToOne
+  @JoinColumn(name = "user_account_id")
+  private UserAccount userAccount;
+
 	public Contacts() {
 	}
 
