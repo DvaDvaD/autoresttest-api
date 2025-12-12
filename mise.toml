@@ -1,2 +1,4 @@
 [tools]
 java = "temurin-11.0.22"
+poetry = "2.2.1"
+python = "3.11"
