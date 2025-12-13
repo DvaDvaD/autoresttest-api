@@ -106,6 +106,7 @@ class AutoRestTestModel:
                     "MINIO_ENDPOINT": settings.MINIO_ENDPOINT,
                     "MINIO_BUCKET": settings.MINIO_BUCKET,
                 },
+                limit=1024 * 1024,  # 1 MiB
             )
 
             result_holder = {}

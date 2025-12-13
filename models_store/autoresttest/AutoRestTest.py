@@ -240,6 +240,7 @@ class AutoRestTest:
         """Sends a PATCH request to the Next.js backend to update job progress."""
         backend_url = os.getenv("NEXTJS_BACKEND_URL")
         api_key = os.getenv("INTERNAL_API_SECRET")
+        print(f"Stage: {stage}, Progress: {percentage}%, Details: {details}")
 
         if not all([backend_url, api_key, self.job_id]):
             print(
@@ -315,13 +316,15 @@ class AutoRestTest:
         if self.use_cached_table:
             # Fast path: Cached table loading is quick
             value_agent_init_range = (18, 20)  # Small 2% block
-            q_learning_range = (20, 95)        # Large 75% block
+            q_learning_range = (20, 95)  # Large 75% block
         else:
             # Slow path: Uncached initialization is long
             value_agent_init_range = (18, 55)  # Large 37% block
-            q_learning_range = (55, 95)        # Large 40% block
+            q_learning_range = (55, 95)  # Large 40% block
 
-        self._update_progress("Initializing Q-Tables", 15, "Initializing Operation Agent...")
+        self._update_progress(
+            "Initializing Q-Tables", 15, "Initializing Operation Agent..."
+        )
         q_learning = QLearning(
             operation_graph,
             alpha=LEARNING_RATE,
@@ -330,16 +333,25 @@ class AutoRestTest:
             time_duration=TIME_DURATION,
             mutation_rate=MUTATION_RATE,
             progress_callback=self._update_progress,
-            q_learning_progress_range=q_learning_range
+            q_learning_progress_range=q_learning_range,
         )
         q_table_key = f"q_table:{spec_name}:{spec_hash}"
+        print(f"Current configuration q_table_key: {q_table_key}")
 
         q_learning.operation_agent.initialize_q_table()
-        self._update_progress("Initializing Q-Tables", 16, "Initializing Parameter Agent...")
+        self._update_progress(
+            "Initializing Q-Tables", 16, "Initializing Parameter Agent..."
+        )
         q_learning.parameter_agent.initialize_q_table()
-        self._update_progress("Initializing Q-Tables", 17, "Initializing Body Object Agent...")
+        self._update_progress(
+            "Initializing Q-Tables", 17, "Initializing Body Object Agent..."
+        )
         q_learning.body_object_agent.initialize_q_table()
-        self._update_progress("Initializing Q-Tables", 18, "Initializing Dependency & Data Source Agents...")
+        self._update_progress(
+            "Initializing Q-Tables",
+            18,
+            "Initializing Dependency & Data Source Agents...",
+        )
         q_learning.dependency_agent.initialize_q_table()
         q_learning.data_source_agent.initialize_q_table()
 
@@ -347,7 +359,11 @@ class AutoRestTest:
 
         cached_q_table = self.redis.get(q_table_key)
         if cached_q_table and self.use_cached_table:
-            self._update_progress("Initializing Q-Tables", value_agent_init_range[0], "Loading cached Value Agent Q-table...")
+            self._update_progress(
+                "Initializing Q-Tables",
+                value_agent_init_range[0],
+                "Loading cached Value Agent Q-table...",
+            )
             compiled_q_table = json.loads(cached_q_table)
             try:
                 q_learning.value_agent.q_table = compiled_q_table["value"]
@@ -359,18 +375,30 @@ class AutoRestTest:
                     q_learning.header_agent.q_table = compiled_q_table["header"]
                 except Exception as e:
                     print("Error loading header agent from Redis.")
-            self._update_progress("Initializing Q-Tables", value_agent_init_range[1], "Finished loading cached tables.")
+            self._update_progress(
+                "Initializing Q-Tables",
+                value_agent_init_range[1],
+                "Finished loading cached tables.",
+            )
         else:
-            self._update_progress("Initializing Q-Tables", value_agent_init_range[0], "Initializing new Value Agent Q-table...")
+            self._update_progress(
+                "Initializing Q-Tables",
+                value_agent_init_range[0],
+                "Initializing new Value Agent Q-table...",
+            )
             q_learning.value_agent.initialize_q_table(
-                progress_callback=self._update_progress, 
-                progress_range=value_agent_init_range
+                progress_callback=self._update_progress,
+                progress_range=value_agent_init_range,
             )
 
             if ENABLE_HEADER_AGENT:
                 q_learning.header_agent.initialize_q_table()
-            
-            self._update_progress("Initializing Q-Tables", value_agent_init_range[1], "Finished initializing Value Agent Q-table.")
+
+            self._update_progress(
+                "Initializing Q-Tables",
+                value_agent_init_range[1],
+                "Finished initializing Value Agent Q-table.",
+            )
 
         try:
             self.redis.set(
@@ -387,7 +415,9 @@ class AutoRestTest:
             print(f"Error saving Q-tables to Redis {e}.")
 
         output_q_table(q_learning, spec_name)
-        self._update_progress("Q-Learning", q_learning_range[0], "Starting reinforcement learning loop...")
+        self._update_progress(
+            "Q-Learning", q_learning_range[0], "Starting reinforcement learning loop..."
+        )
 
         print("BEGINNING Q-LEARNING...")
         q_learning.run()
