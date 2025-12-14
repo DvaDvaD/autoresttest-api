@@ -2,6 +2,7 @@ import argparse
 import hashlib
 import json
 import os
+from typing import Optional
 import requests
 from datetime import datetime, timedelta
 from urllib.parse import urlparse
@@ -27,6 +28,7 @@ from src.utils import (
 from configurations import (
     USE_CACHED_GRAPH,
     USE_CACHED_TABLE,
+    API_URL_OVERRIDE,
     LEARNING_RATE,
     DISCOUNT_FACTOR,
     MAX_EXPLORATION,
@@ -261,7 +263,11 @@ class AutoRestTest:
         self, spec_name: str, spec_path: str, embedding_model: EmbeddingModel
     ) -> OperationGraph:
         spec_parser = SpecificationParser(spec_path=spec_path, spec_name=spec_name)
-        api_url = get_api_url(spec_parser, self.local_test)
+        api_url = (
+            API_URL_OVERRIDE
+            if API_URL_OVERRIDE
+            else get_api_url(spec_parser, self.local_test)
+        )
         operation_graph = OperationGraph(
             spec_path=spec_path,
             spec_name=spec_name,
@@ -281,6 +287,7 @@ class AutoRestTest:
         graph_key = f"graph:{spec_name}:{spec_hash}"
         print("CREATING SEMANTIC OPERATION DEPENDECY GRAPH...")
 
+        operation_graph: Optional[OperationGraph] = None
         cached_graph = self.redis.get(graph_key)
         if cached_graph and self.use_cached_graph:
             print(f"Loading graph for {spec_name} from Redis.")
@@ -307,6 +314,16 @@ class AutoRestTest:
 
             print(f"Initialized new graph for {spec_name}.")
         print("GRAPH CREATED!!!")
+
+        if (
+            operation_graph
+            and operation_graph.request_generator
+            and operation_graph.request_generator.api_url
+        ):
+            print(
+                f"Will perform Q-learning using the URL: {operation_graph.request_generator.api_url}"
+            )
+
         return operation_graph
 
     def perform_q_learning(
