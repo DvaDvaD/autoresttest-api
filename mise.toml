@@ -2,3 +2,23 @@
 java = "temurin-11.0.22"
 poetry = "2.2.1"
 python = "3.11"
+
+[tasks.run-restcountries-build]
+description = "Build the restcountries Java 8 application"
+run = "mvn -f models_store/autoresttest/aratrl-service/jdk8_1/cs/rest/original/restcountries/pom.xml clean install -U -DskipTests"
+tools = { java = "zulu-8.90.0.19", maven = "3.9" }
+
+[tasks.run-restcountries]
+description = "Run the restcountries Java 8 application"
+run = "java -jar models_store/autoresttest/aratrl-service/jdk8_1/cs/rest/original/restcountries/target/restcountries-sut.jar"
+tools = { java = "zulu-8.90.0.19", maven = "3.9" }
+
+[tasks.run-features-service-build]
+description = "Build the features-service Java 8 application"
+run = "mvn -f models_store/autoresttest/aratrl-service/jdk8_1/cs/rest/original/features-service/pom.xml clean install -DskipTests"
+tools = { java = "zulu-8.90.0.19", maven = "3.9" }
+
+[tasks.run-features-service]
+description = "Run the features-service Java 8 application"
+run = "java -jar models_store/autoresttest/aratrl-service/jdk8_1/cs/rest/original/features-service/target/features-service-sut.jar"
+tools = { java = "zulu-8.90.0.19", maven = "3.9" }
