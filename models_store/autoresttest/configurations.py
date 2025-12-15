@@ -5,6 +5,8 @@ SPECIFICATION_LOCATION = "aratrl-openapi/market2.yaml"  # The location of the Sp
 # Note: Only .yaml and .json files are supported. The Specification file must be in the OpenAPI 3.0 format.
 # The file extension must be specified in the path (e.g., .yaml or .json).
 
+API_URL_OVERRIDE = ""
+
 OPENAI_LLM_ENGINE = "gemini-2.0-flash-lite"  # The OpenAI language model engine to use for the value agent generation.
 DEFAULT_TEMPERATURE = 0.7  # The default temperature for the OpenAI language model.
 # Note: The OpenAI engine must be compatible with the JSON mode. Also, for the cost output to be accurate, the engine must be either "gpt-4o", "gpt-4o-mini", "o1", or "o1-mini".

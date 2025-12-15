@@ -57,7 +57,9 @@ class AutoRestTestModel:
             with open(config_path, "w") as f:
                 f.write(f"SPECIFICATION_LOCATION = '{spec_path}'\n")
                 f.write("OPENAI_LLM_ENGINE = 'gemini-2.0-flash-lite'\n")
-                f.write(f"API_URL_OVERRIDE = '{config.api_url_override}'\n")
+                f.write(
+                    f"API_URL_OVERRIDE = '{config.api_url_override if config.api_url_override else ''}'\n"
+                )
                 f.write(f"DEFAULT_TEMPERATURE = {config.llm_engine_temperature}\n")
                 f.write(f"USE_CACHED_GRAPH = {config.use_cached_graph}\n")
                 f.write(f"USE_CACHED_TABLE = {config.use_cached_q_tables}\n")
