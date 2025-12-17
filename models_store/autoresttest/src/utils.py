@@ -258,7 +258,7 @@ class OpenAILanguageModel:
                 "OPENAI API key is required for OpenAI language model, found None or empty string."
             )
         self.client = OpenAI(
-            base_url="https://generativelanguage.googleapis.com/v1beta/openai/",
+            base_url=self.openai_base_url,
             api_key=self.api_key,
         )
         self.engine = engine

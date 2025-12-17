@@ -56,7 +56,7 @@ class AutoRestTestModel:
             config_path = os.path.join(temp_dir, "configurations.py")
             with open(config_path, "w") as f:
                 f.write(f"SPECIFICATION_LOCATION = '{spec_path}'\n")
-                f.write("OPENAI_LLM_ENGINE = 'gemini-2.0-flash-lite'\n")
+                f.write("OPENAI_LLM_ENGINE = 'openai/gpt-oss-120b'\n")
                 f.write(
                     f"API_URL_OVERRIDE = '{config.api_url_override if config.api_url_override else ''}'\n"
                 )
@@ -100,6 +100,7 @@ class AutoRestTestModel:
                 cwd=temp_dir,
                 env={
                     "OPENAI_API_KEY": settings.OPENAI_API_KEY,
+                    "OPENAI_BASE_URL": settings.OPENAI_BASE_URL,
                     "UPSTASH_REDIS_REST_URL": settings.UPSTASH_REDIS_REST_URL,
                     "UPSTASH_REDIS_REST_TOKEN": settings.UPSTASH_REDIS_REST_TOKEN,
                     "NEXTJS_BACKEND_URL": settings.NEXTJS_BACKEND_URL,
