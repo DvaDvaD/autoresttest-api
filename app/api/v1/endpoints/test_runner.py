@@ -1,7 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException, Request
 from app.models.test_config import TestRunRequest, TestRunResult
 from app.services.model_service import AutoRestTestModel
-from app.api.deps import cancel_on_disconnect, get_api_key, get_model_service
+from app.api.deps import get_api_key, get_model_service
+from lib.utils import cancel_on_disconnect
 
 router = APIRouter()
 
