@@ -1,0 +1,17 @@
+[Unit]
+Description=AutoRest Full Stack (Docker Compose)
+Requires=docker.service
+After=docker.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=/home/user/autoresttest-api
+
+# Start the stack
+ExecStart=/usr/bin/docker compose up -d
+# Stop the stack
+ExecStop=/usr/bin/docker compose down
+
+[Install]
+WantedBy=multi-user.target

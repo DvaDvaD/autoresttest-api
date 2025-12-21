@@ -1,0 +1,63 @@
+services:
+  # --- DATABASE ---
+  postgres:
+    image: postgres:13-alpine
+    container_name: market-db
+    environment:
+      POSTGRES_DB: market_prod
+      POSTGRES_USER: autorest_admin
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-secure_dev_password_99} # Recommended: set in .env file
+    ports:
+      - "5433:5432"
+    volumes:
+      - market-db-data:/var/lib/postgresql/data
+    restart: always
+
+  # --- JAVA APIs ---
+  features-api:
+    build:
+      context: .
+      dockerfile: infra/features-api/Dockerfile
+    container_name: features-api
+    ports:
+      - "8080:8080"
+    restart: always
+
+  market-api:
+    build:
+      context: .
+      dockerfile: infra/market-api/Dockerfile
+    container_name: market-api
+    depends_on:
+      - postgres
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/market_prod
+      SPRING_DATASOURCE_USERNAME: autorest_admin
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD:-secure_dev_password_99}
+    ports:
+      - "8081:8081"
+    restart: always
+
+  countries-api:
+    build:
+      context: .
+      dockerfile: infra/countries-api/Dockerfile
+    container_name: countries-api
+    ports:
+      - "8082:8082"
+    restart: always
+
+  # --- PYTHON MODEL WRAPPER ---
+  model-wrapper-api:
+    build:
+      context: .
+      dockerfile: infra/model-wrapper-api/Dockerfile
+    container_name: model-wrapper
+    volumes:
+      - ./models_store:/app/models_store:ro
+    ports:
+      - "8000:8000"
+    restart: always
+
+volumes:
+  market-db-data:
