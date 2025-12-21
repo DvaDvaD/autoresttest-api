@@ -1,5 +1,5 @@
 [Unit]
-Description=AutoRestTest API (Docker Compose)
+Description=AutoRest Dummy APIs (Docker Compose)
 Requires=docker.service
 After=docker.service
 
@@ -9,7 +9,7 @@ RemainAfterExit=yes
 WorkingDirectory=/root/autoresttest-api
 
 # Start the stack
-ExecStart=/usr/bin/docker compose up -d model-wrapper-api
+ExecStart=/usr/bin/docker compose up -d postgres market-api features-api countries-api
 # Stop the stack
 ExecStop=/usr/bin/docker compose down 
 
