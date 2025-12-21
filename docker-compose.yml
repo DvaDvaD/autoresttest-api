@@ -56,7 +56,7 @@ services:
     volumes:
       - ./models_store:/app/models_store:ro
     ports:
-      - "8000:8000"
+      - "8000:8080"
     restart: always
 
 volumes:
