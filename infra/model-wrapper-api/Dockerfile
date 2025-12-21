@@ -28,6 +28,7 @@ ENV PATH="/app/.venv/bin:$PATH"
 # Copy the application code and models
 # (Keeping your original structure)
 COPY app/ ./app
+COPY lib/ ./lib
 COPY models_store/ ./models_store
 
 CMD ["fastapi", "run", "app/main.py", "--port", "8080"]
