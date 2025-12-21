@@ -19,6 +19,7 @@ class Settings(BaseSettings):
 
     NEXTJS_BACKEND_URL: str = "some_url"
     INTERNAL_API_SECRET: str = "some_secret"
+    DB_PASSWORD: str = "password"
 
     class Config:
         env_file = ".env"
