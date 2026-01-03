@@ -6,12 +6,25 @@ services:
     environment:
       POSTGRES_DB: market_prod
       POSTGRES_USER: autorest_admin
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-secure_dev_password_99} # Recommended: set in .env file
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-secure_dev_password_99}
+    # Security: Bind only to localhost to prevent external access
     ports:
-      - "5433:5432"
+      - "127.0.0.1:5433:5432"
     volumes:
       - market-db-data:/var/lib/postgresql/data
     restart: always
+    # Reliability: Ensure DB is ready before dependents start
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U autorest_admin -d market_prod"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    # Ops: Rotate logs to prevent disk exhaustion
+    logging: &default-logging
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   # --- JAVA APIs ---
   features-api:
@@ -22,6 +35,12 @@ services:
     ports:
       - "8082:8082"
     restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z localhost 8082 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    logging: *default-logging
 
   market-api:
     build:
@@ -29,7 +48,8 @@ services:
       dockerfile: infra/market-api/Dockerfile
     container_name: market-api
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/market_prod
       SPRING_DATASOURCE_USERNAME: autorest_admin
@@ -37,6 +57,12 @@ services:
     ports:
       - "8081:8081"
     restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "curl http://localhost:8081/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    logging: *default-logging
 
   countries-api:
     build:
@@ -46,6 +72,12 @@ services:
     ports:
       - "8080:8080"
     restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z localhost 8080 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    logging: *default-logging
 
   # --- PYTHON MODEL WRAPPER ---
   model-wrapper-api:
@@ -58,6 +90,17 @@ services:
     ports:
       - "8000:8080"
     restart: always
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          'python -c ''import urllib.request; urllib.request.urlopen("http://localhost:8080/openapi.json")'' || exit 1',
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    logging: *default-logging
 
 volumes:
   market-db-data:
+

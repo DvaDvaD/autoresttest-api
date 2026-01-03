@@ -15,6 +15,9 @@ RUN cd models_store/autoresttest/aratrl-service/jdk11/market && \
 FROM eclipse-temurin:11.0.22_7-jre
 WORKDIR /app
 
+# Install curl for healthcheck
+RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
+
 # Find the built JAR from the first stage and copy it
 # Note: You may need to verify the exact path of the generated .jar
 COPY --from=build /app/models_store/autoresttest/aratrl-service/jdk11/market/market-rest/target/*.jar app.jar
