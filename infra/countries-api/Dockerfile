@@ -1,5 +1,6 @@
 # STAGE 1: Build (Java 8 JDK)
-FROM maven:3.9.12-eclipse-temurin-11-alpine AS build
+# Switched from Alpine to Debian-based image to fix production DNS/Network timeouts
+FROM maven:3.9-eclipse-temurin-11 AS build
 WORKDIR /app
 
 # Copy the entire root context
