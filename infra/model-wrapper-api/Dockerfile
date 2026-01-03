@@ -30,5 +30,6 @@ ENV PATH="/app/.venv/bin:$PATH"
 COPY app/ ./app
 COPY lib/ ./lib
 COPY models_store/ ./models_store
+COPY .env ./.env
 
 CMD ["fastapi", "run", "app/main.py", "--port", "8080"]
