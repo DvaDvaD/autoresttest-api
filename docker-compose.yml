@@ -87,6 +87,7 @@ services:
     build:
       context: .
       dockerfile: infra/model-wrapper-api/Dockerfile
+      network: host
     container_name: model-wrapper
     volumes:
       - ./models_store:/app/models_store:ro
@@ -106,4 +107,3 @@ services:
 
 volumes:
   market-db-data:
-
