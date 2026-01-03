@@ -8,6 +8,9 @@ api_key_header = APIKeyHeader(name="x-api-key")
 
 
 def get_api_key(api_key: str = Security(api_key_header)):
+    print("Input API key:", api_key)
+    print("Application API key:", settings.API_KEY)
+
     if api_key == settings.API_KEY:
         return api_key
     else:
