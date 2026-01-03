@@ -22,7 +22,8 @@ WORKDIR /app
 # Copy the virtualenv from the builder stage
 COPY --from=builder /app/.venv /app/.venv
 
-# Update PATH to use the virtualenv
+# Set virtualenv environment variables
+ENV VIRTUAL_ENV=/app/.venv
 ENV PATH="/app/.venv/bin:$PATH"
 
 # Copy the application code and models
