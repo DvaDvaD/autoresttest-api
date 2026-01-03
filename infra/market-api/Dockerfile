@@ -1,15 +1,15 @@
 # STAGE 1: Build the application
-FROM eclipse-temurin:11.0.22_7-jdk AS build
+# Switched to Maven image to avoid mvnw download issues in production
+FROM maven:3.9-eclipse-temurin-11 AS build
 WORKDIR /app
 
-# Copy the entire project context to access mvnw and the source code
+# Copy the entire project context
 COPY . .
 
-# Move to the specific directory and build the JAR
+# Move to the specific directory and build the JAR using system mvn
 # We skip tests to make the build faster
 RUN cd models_store/autoresttest/aratrl-service/jdk11/market && \
-  chmod +x ./mvnw && \
-  ./mvnw clean install -U -pl market-rest -am -DskipTests
+  mvn clean install -U -pl market-rest -am -DskipTests
 
 # STAGE 2: Run the application
 FROM eclipse-temurin:11.0.22_7-jre
