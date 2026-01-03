@@ -15,7 +15,7 @@ services:
     restart: always
     # Reliability: Ensure DB is ready before dependents start
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U autorest_admin -d market_prod"]
+      test: ["CMD-SHELL", "pg_isready -U autorest_admin -d market_prod -h 127.0.0.1"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -107,3 +107,11 @@ services:
 
 volumes:
   market-db-data:
+
+# Network: Explicitly define subnet to avoid conflict with default bridge (172.17.0.0/16)
+networks:
+  default:
+    ipam:
+      driver: default
+      config:
+        - subnet: "172.25.0.0/16"
