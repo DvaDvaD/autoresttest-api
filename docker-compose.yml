@@ -31,6 +31,7 @@ services:
     build:
       context: .
       dockerfile: infra/features-api/Dockerfile
+      network: host
     container_name: features-api
     ports:
       - "8082:8082"
@@ -46,6 +47,7 @@ services:
     build:
       context: .
       dockerfile: infra/market-api/Dockerfile
+      network: host
     container_name: market-api
     depends_on:
       postgres:
@@ -68,6 +70,7 @@ services:
     build:
       context: .
       dockerfile: infra/countries-api/Dockerfile
+      network: host
     container_name: countries-api
     ports:
       - "8080:8080"
